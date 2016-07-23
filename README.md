@@ -1,6 +1,6 @@
 Instructions:
 
--Create a google spreadsheet
+-Create a google spreadsheet <br>
 -Set permissions to either:
 	Anyone with the link can edit (recommended)
 	Anyone on the Internet can edit (not recommended)
