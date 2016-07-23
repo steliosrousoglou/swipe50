@@ -61,6 +61,12 @@ var TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
  *    METHODS
  */
 
+/**
+ * Extracts spreadsheet ID from the url provided using regex
+ * If a non-empty ID is found, returns true; 
+ * @param {string} url The url provided by the user
+ * @param {function} callback The callback to call with the authorized client.
+ */
 function parseInputID(url) {
   var head = /spreadsheets\/d\//;
   var firstHalf = url.substring(url.search(head)).substring(15);
