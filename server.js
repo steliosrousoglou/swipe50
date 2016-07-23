@@ -42,8 +42,7 @@ app.get('/writeable', function(req, res) {
 });
 
 app.post('/swipe', function(req, res) {
-  //swipeIn(req.body.netid);
-  update("whatever", "whatever");
+  swipeIn(req.body.netid);
   res.send(''); // TODO: fix this shit. It takes 2 submissions to work...
 });
 
@@ -173,31 +172,7 @@ function readPromise(range) {
  * Read cell A1 async, values returned are passed into update and
  * written to cell A1. If successfull, we know spreadsheet writeable
  */
-// function isWriteable(res) {
-//   sheets.spreadsheets.values.get({
-//       auth: authorization,
-//       spreadsheetId: spreadsheetID,
-//       range: 'A1',
-//     }, function(err, response) {
-//         if (err) {
-//           console.log('Spreadsheet not readable: ' + err);
-//           return;
-//         }
-//         else {
-//           sheets.spreadsheets.values.update(getValueRange('A1', response.values), function(err, response) {
-//             if (err) {
-//               console.log('Spreadsheet not writeable: ' + err);
-//               return;
-//             }
-//             else {
-//               writeable = true;
-//             }
-//           });
-//         }
-//     });
-// }
 function isWriteable() {
-  console.log('checking is writable');
   return new Promise(function(resolve, reject) {
       sheets.spreadsheets.values.get({
         auth: authorization,
@@ -224,59 +199,36 @@ function isWriteable() {
   });
 }
 
-
-
-
-
-function getRange(row) {
-  var num = row.toString();
-  return 'A' + num + ':E' + num;
-}
-
-// function update(range, array) {
-
-//   //var update = new Promise(function(resolve, reject) {
-//     sheets.spreadsheets.values.update(getValueRange('A10:E10', array), function(err, response) {
-//       if (err) {
-//         console.log('Spreadsheet not writeable: ' + err);
-//         return;
-//       }
-//     });
-
-//   // update.then(function() {
-//   //   console.log("Wrote successfully (update)");
-//   // }).catch(function(err){
-//   //   console.log('Cannot write to spreadsheet: (update)' + err);
-//   // })
-
-//   // console.log("THIS SHOULD COME FIRST");
-// }
-
-function update(range, array) {
-  // row += 1;
-  // sheets.spreadsheets.values.update(getValueRange(getRange(row), array), function(err, response) {
-  //     if (err) {
-  //       console.log('Cannot write to spreadsheet: ' + err);
-  //     }
-  //     console.log("Wrote successfully");
-  //   });
-
-
+function update(netid, timestamp, firstName, lastName, email) {
   sheets.spreadsheets.batchUpdate({
     auth: authorization,
     spreadsheetId: spreadsheetID,
-    
     resource: {
       requests: [
       {
         appendCells: {
-          sheetId: 65864778, 
+          sheetId: 0, 
           "rows": [
           {
-            "values": [{
-                'formattedValue': "GAMOTO SPITI MOU", 
+            "values": [{ 
                 userEnteredValue: {
-                  stringValue: "DE GAMIESE"
+                  stringValue: netid
+                }
+            }, { 
+                userEnteredValue: {
+                  stringValue: timestamp
+                }
+            }, { 
+                userEnteredValue: {
+                  stringValue: firstName
+                }
+            }, { 
+                userEnteredValue: {
+                  stringValue: lastName
+                }
+            }, { 
+                userEnteredValue: {
+                  stringValue: email
                 }
             }],
           }],
@@ -294,36 +246,6 @@ function update(range, array) {
         }
       });
 }
-
-/**
- * Print the names and majors of students in a sample spreadsheet:
- * https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
-//  */
-// function listMajors() {
-//   console.log(spreadsheetID);
-//   sheets.spreadsheets.values.get({
-//     auth: authorization,
-//     spreadsheetId: spreadsheetID,
-//     range: 'A1:E1',
-//   }, function(err, response) {
-//     if (err) {
-//       console.log('The API returned an error: ' + err);
-//       return;
-//     }
-//     var rows = response.values;
-//     console.log(rows[0][0]);
-//     // if (rows.length == 0) {
-//     //   console.log('No data found.');
-//     // } else {
-//     //   console.log('Name, Major:');
-//     //   for (var i = 0; i < rows.length; i++) {
-//     //     var row = rows[i];
-//     //     // Print columns A and E, which correspond to indices 0 and 4.
-//     //     console.log('%s, %s', row[0], row[4]);
-//     //   }
-//     // }
-//   });
-// }
 
 /**
  * Creates the body of the update request
@@ -348,24 +270,6 @@ function makeArray(netid, timestamp, firstName, lastName, email) {
   return [[netid, timestamp, firstName, lastName, email]];
 }
 
-// function test() {
-//   var host = 'https://gw-tst.its.yale.edu/soa-gateway/cs50?netid=sr692&type=json';
-
-//   fetch(host, {
-//     method: 'GET', 
-//     // headers: {
-//     //   "Content-Type": "application/json"
-//     // }, 
-//     // body: JSON.stringify(body)
-//   }).then(function(res) {
-//     return res.text();
-//   }).then(function(res) {
-//     console.log(res);
-//   }).catch(function(err) {
-//     console.log('Failed to validate ID.');
-//   });
-// }
-
 function swipeIn(netid) {
   request.post(
     {
@@ -381,49 +285,12 @@ function swipeIn(netid) {
           console.log("Unable to find student");
         return;
       }
-      update('A11:E11', makeArray(netid, 
-              Date(),
-              result["ServiceResponse"]["Record"]["FirstName"], 
-              result["ServiceResponse"]["Record"]["LastName"],
-              result["ServiceResponse"]["Record"]["EmailAddress"]
-            ));
+      update(netid, 
+            Date(),
+            result["ServiceResponse"]["Record"]["FirstName"], 
+            result["ServiceResponse"]["Record"]["LastName"],
+            result["ServiceResponse"]["Record"]["EmailAddress"]
+            );
     }
   );
-}
-
-// function read(range) {
-//   sheets.spreadsheets.values.get({
-//     auth: authorization,
-//     spreadsheetId: spreadsheetID,
-//     range: range,
-//   }, function(err, response) {
-//     if (err) {
-//       console.log('Cannot read from spreadsheet: (read)' + err);
-//       return;
-//     }
-//     console.log("Read successfully (read)");
-
-//     return response.values;
-//     //console.log(rows);
-//     // if (rows.length == 0) {
-//     //   console.log('No data found.');
-//     // } else {
-//     //   console.log('Name, Major:');
-//     //   for (var i = 0; i < rows.length; i++) {
-//     //     var row = rows[i];
-//     //     // Print columns A and E, which correspond to indices 0 and 4.
-//     //     console.log('%s, %s', row[0], row[4]);
-//     //   }
-//     // }
-//   });
-// }
-
-/**
- *   PROGRAM
- */
-
-//initialize();
-
-module.exports = {
-  parseInputID
 }

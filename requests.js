@@ -40,7 +40,7 @@ function swipeIn(netid) {
   }).then(function(res) {
     return '';
   }).catch(function(err) {
-    console.log('LOL.');
+    console.log('Failed to swipe in: ' + err);
   });
 }
 
@@ -52,7 +52,7 @@ function authorize() {
   }).then(function(res) {
     console.log(res);
   }).catch(function(err) {
-    console.log('Failed to authorize.');
+    console.log('Failed to authorize: ' + err);
   });
 }
 
@@ -71,12 +71,12 @@ function validateId(url) {
     return res.text();
   }).then(function(res_text) {
     if(res_text == 'invalid') {
-      window.alert('enter a valid sheets url');
+      window.alert('Enter a valid sheets url');
     } else {
       isWriteable();
     }
   }).catch(function(err) {
-    console.log('Failed to validate ID.');
+    console.log('Failed to validate ID: ' + err);
   });
 }
 
@@ -93,13 +93,8 @@ function isWriteable() {// GOT HERE
       swipeReader.focus();
     }
   }).catch(function(err) {
-    alert("Cannot connect to server. ");
+    alert("Cannot connect to server: " + err);
   });
 }
 
 authorize();
-
-// module.exports = {
-//   authorize
-// }
-
