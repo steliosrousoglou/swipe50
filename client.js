@@ -1,7 +1,3 @@
-// This file is required by the index.html file and will
-// be executed in the renderer process for that window.
-// All of the Node.js APIs are available in this process.
-
 const host = 'http://localhost:3000';
 
 // url textbox
@@ -40,7 +36,6 @@ swipeReader.addEventListener('keyup', e => {
  * Event listener for drop-down sheet selector
  */
 dropDown.addEventListener('change', e => {
-  console.log(e.target.value);
   changeSheet(e.target.value);
 });
 
@@ -58,7 +53,7 @@ function swipeIn(netid) {
     }, 
     body: JSON.stringify(body)
   }).then(function(res) {
-    return '';
+    console.log(res);
   }).catch(function(err) {
     console.log('Failed to swipe in: ' + err);
   });
@@ -112,7 +107,7 @@ function validateUrl(url) {
  * user if the spreadsheet is not writeable.
  * If it is, enables swipe textbox
  */
-function isWriteable() {// GOT HERE
+function isWriteable() {
   fetch(host + '/writeable', {
     method: 'GET'
   }).then(function(res) {
