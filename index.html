@@ -1,47 +1,40 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Hello World!</title>
-    <style type="text/css">
-      body {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100vh;
-}  
-input {
-  margin : auto;
-  width: 200px;
-  padding: 1rem;
-  text-align: center;
-}
+<head>
+  <meta charset="UTF-8">
+  <title>Hello World!</title>
+  <style type="text/css">
+  body {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+  }  
+  input {
+    margin : auto;
+    width: 200px;
+    padding: 1rem;
+    text-align: center;
+  }
+  #drop {
+    margin : auto;
+    width: 200px;
+  }
 
-    </style>
-  </head>
-  <body>
-    <div>
-      <input type="text" class="sheet-url" value="https://docs.google.com/spreadsheets/d/1cIX4Vr9jbG7nj1aWIq2_pvGSM-RZxTxDXUjD7YAKuFg" />
-      <button class="submit-button">LINK</button>
-    </div>
-    <input type="text" class="swipe-reader" />
-  </body>
-  <script>
-    // You can also require other files to run in this process
-    //const helpers = require('./renderer.js')
-    // fetch('http://localhost:3000/stelios', {
-    //   method: 'get'
-    // }).then(function(response) {
-    //  return response.json();
-    // }).then(function(text) {
-    //   console.log(text);
-    // }).catch(function(err) {
-    //   // Error :(
-    // });
-    
-    // function authorize(){
-    //   authorize();
-    // }
-  </script>
-  <script src="requests.js"></script>
+  </style>
+</head>
+<body>
+  <div>
+    <input type="text" class="sheet-url" value="https://docs.google.com/spreadsheets/d/1cIX4Vr9jbG7nj1aWIq2_pvGSM-RZxTxDXUjD7YAKuFg" />
+    <button class="submit-button">LINK</button>
+  </div>
+  <div align="center">
+    <select name="mydropdown" class="drop">
+    </select>
+  </div>
+  <input type="text" class="swipe-reader" />
+</body>
+<script>
+</script>
+<script src="client.js"></script>
 </html>
