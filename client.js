@@ -106,7 +106,9 @@ function validateUrl(url) {
 function isWriteable(render){//(render) {
   var body = {
       spreadsheetId : spreadsheetID, 
-      sheetId: sheetID
+      sheetId: sheetID, 
+      sheet: '',
+      ext: 'A1'//sheetID + 
   };
 
   fetch(host + '/writeable', {
@@ -121,14 +123,7 @@ function isWriteable(render){//(render) {
     if(res_text === 'fail'){
       
       // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
-      if(!render){
-        swipeReader.disabled = true;
-        dropDown.selectedIndex = 0;
-        sheetID = dropDown.options[dropDown.selectedIndex].value;
-        alert("Sheet not writeable, switching to " + dropDown.options[dropDown.selectedIndex].text);
-        swipeReader.disabled = false;
-        swipeReader.focus();
-      } else alert("Spreadsheet not writeable");
+      alert("Spreadsheet not writeable");
     } else {
       var response = JSON.parse(res_text);
       swipeReader.disabled = false;
@@ -172,10 +167,11 @@ function changeSheet(spreadsheetID, sheetId, title) {
   var body = {
     spreadsheetId: spreadsheetID,
     sheetId: sheetId, 
-    title: title
+    sheet: title, 
+    ext: '!A1'
   };
 
-  fetch(host + '/changeSheet', {
+  fetch(host + '/writeable', {
     method: 'POST', 
     headers: {
       "Content-Type": "application/json"
@@ -184,10 +180,18 @@ function changeSheet(spreadsheetID, sheetId, title) {
   }).then(function(res) {
     return res.text();
   }).then(function(res_text) {
-    var parse = JSON.parse(res_text); // .title, .sheetId. .sheets
-    sheetID = parse.sheetId;
-    sheetName = dropDown.options[dropDown.selectedIndex].text
-    isWriteable(false);
+    if(res_text === 'fail'){
+      // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
+      dropDown.selectedIndex = 0;
+      sheetID = dropDown.options[dropDown.selectedIndex].value;
+      alert("Sheet not writeable, switching to " + dropDown.options[dropDown.selectedIndex].text);
+    } else {
+      var parse = JSON.parse(res_text); // .title, .sheetId. .sheets
+      sheetID = parse.sheetId; // set global sheetID
+      sheetName = dropDown.options[dropDown.selectedIndex].text; // set global sheetName
+    }
+    swipeReader.disabled = false;
+    swipeReader.focus();
   }).catch(function(err) {
     alert("Failed to change sheet: " + err);
   });

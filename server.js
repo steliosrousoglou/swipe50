@@ -35,25 +35,10 @@ app.post('/url', function(req, res) {
 });
 
 app.post('/writeable', function(req, res) {
-  //console.log("FREAKING ID: ", req.body.sheetId);
-  console.log("checking if writable: sheet " + req.body.sheetId)
-  isWriteable2(req.body.spreadsheetId, req.body.sheetId, req.body.sheet)
-  .then(body => {
-    //console.log(properties.properties.title);
-    res.send(body);//wanna send back sheetID and properties
-  }).catch(err => res.send('fail'));
-});
-
-app.post('/changeSheet', function(req, res) {
   sheetID = req.body.sheetId;
-  // console.log("NEW SHEET: " + req.body.title);
-  // console.log("New sheet: " + sheetID);
-  // res.send(req.body.sheetId);
-  isWriteable2(req.body.spreadsheetId, req.body.sheetId, req.body.sheet)
-  .then(body => {
-    //console.log(properties.properties.title);
-    res.send(body);//wanna send back sheetID and properties
-  }).catch(err => res.send('fail'));
+  isWriteable(req.body.spreadsheetId, req.body.sheetId, req.body.sheet, req.body.ext)
+  .then(body => res.send(body))
+  .catch(err => res.send('fail'));
 
 });
 
@@ -178,8 +163,9 @@ var TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
   return spreadsheetID;
 }
 
-function initialize() {
-  sheets.spreadsheets.values.update(getValueRange('A1:E1', 
+function initialize(name) {
+  console.log('INITIALIZING: ' + name + '!A1:E1'); 
+  sheets.spreadsheets.values.update(getValueRange(name + '!A1:E1', 
     [["netID", "Timestamp", "First Name", "Last Name", "email"]]), 
   function(err, response) {
     if (err) {
@@ -191,56 +177,12 @@ function initialize() {
   });
 }
 
-/**
- * Read cell A1 async, values returned are passed into update and
- * written to cell A1. If successfull, we know spreadsheet writeable
- */
-//  function isWriteable() {
-//   return new Promise(function(resolve, reject) {
-//     sheets.spreadsheets.values.get({
-//       auth: authorization,
-//       spreadsheetId: spreadsheetID,
-//       range: 'A1',
-//     }, function(err, response) {
-//       if (err) {
-//         console.log('Spreadsheet not readable: ' + err);
-//         reject('error');
-//       }
-//       else {
-//         sheets.spreadsheets.values.update(getValueRange('A1', response.values), function(err, response) {
-//           if (err) {
-//             console.log('Spreadsheet not writeable: ' + err);
-//             reject('error');
-//           }
-//           else {console.log("done with dis");
-//             // if(response.values === undefined) initialize();
-//             // sheets.spreadsheets.get({
-//             //   auth: authorization,
-//             //   spreadsheetId: spreadsheetID
-//             // }, function(err, response) {
-//             //   if (err) {
-//             //     console.log('Title not retrievable: ' + err);
-//             //     reject('error');
-//             //   }
-//             //   else {
-//             //     console.log('Spreadsheet writable');
-//             //     sheetID = 0;
-//             //     resolve(response);
-//             //   }
-//             // });
-//           }
-//         });
-//       }
-//     });
-// });
-// }
-
-function isWriteable2(spreadsheetID, sheetID, sheet) {
+function isWriteable(spreadsheetID, sheetID, sheet, ext) {
   return new Promise(function(resolve, reject) {
     sheets.spreadsheets.values.batchGet({
       auth: authorization,
       spreadsheetId: spreadsheetID,
-      ranges: 'A3'//sheet + '!A3',
+      ranges: sheet + ext//sheet + '!A3',
     }, function(err, response) {
       if (err) {
         console.log('Spreadsheet not readable: ' + err);
@@ -284,10 +226,6 @@ function isWriteable2(spreadsheetID, sheetID, sheet) {
             reject('error');
           }
           else {
-            //console.log("IS IT HERE2?" + spreadsheetID);
-            // if updateRows == undefined (i.e. A1 empty) initialize sheet!
-            if(init) initialize();
-
             sheets.spreadsheets.get({
               auth: authorization,
               spreadsheetId: spreadsheetID
@@ -308,6 +246,7 @@ function isWriteable2(spreadsheetID, sheetID, sheet) {
                   }
                   else {
                     console.log('Spreadsheet writable');
+                    if(init) initialize(sheet);
                     resolve(JSON.stringify({
                       title: title, 
                       sheetId: sheetID, 
