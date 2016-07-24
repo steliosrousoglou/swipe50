@@ -11,8 +11,8 @@ var request = require('request');
 var row = 0;
 
 var authorization;  // Holds OAuth2 client credentials 
-var spreadsheetID;  // Unique identifier of spreadsheet to be used
-var sheetID;
+//var spreadsheetID;  // Unique identifier of spreadsheet to be used
+//var sheetID;
 
 process.env.TZ = 'America/New_York';
 
@@ -30,26 +30,36 @@ app.post('/authorize', function(req, res) {
 
 app.post('/url', function(req, res) {
   var valid = parseInputID(req.body.url);
-  if (valid) res.send('valid');
+  if (valid) res.send(valid);
   else res.send('invalid');
 });
 
-app.get('/writeable', function(req, res) {
-  isWriteable()
-  .then(properties => res.send(properties))
-  .catch(err => res.send('fail'));
-  //res.send(''); // TODO: fix this shit. It takes 2 submissions to work...
+app.post('/writeable', function(req, res) {
+  //console.log("FREAKING ID: ", req.body.sheetId);
+  console.log("checking if writable: sheet " + req.body.sheetId)
+  isWriteable2(req.body.spreadsheetId, req.body.sheetId, req.body.sheet)
+  .then(body => {
+    //console.log(properties.properties.title);
+    res.send(body);//wanna send back sheetID and properties
+  }).catch(err => res.send('fail'));
 });
 
 app.post('/changeSheet', function(req, res) {
   sheetID = req.body.sheetId;
-  console.log("New sheet: " + sheetID);
-  res.send('changed sheet');
+  // console.log("NEW SHEET: " + req.body.title);
+  // console.log("New sheet: " + sheetID);
+  // res.send(req.body.sheetId);
+  isWriteable2(req.body.spreadsheetId, req.body.sheetId, req.body.sheet)
+  .then(body => {
+    //console.log(properties.properties.title);
+    res.send(body);//wanna send back sheetID and properties
+  }).catch(err => res.send('fail'));
+
 });
 
 app.post('/swipe', function(req, res) {
-  swipeIn(req.body.netid);
-  res.send(''); // TODO: fix this shit. It takes 2 submissions to work...
+  swipeIn(req.body.netid, req.body.spreadsheetId, req.body.sheetId);
+  res.send('');
 });
 
 app.listen(3000, function () {
@@ -159,36 +169,125 @@ var TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
  */
  function parseInputID(url) {
   var head = /spreadsheets\/d\//;
-  var firstHalf = url.substring(url.search(head)).substring(15);
+  var beg = url.search(head);
+  // If no match, spreadsheetID will remain empty
+  firstHalf = (beg == -1) ? "" : url.substring(beg).substring(15);
   var tail = firstHalf.indexOf('/');
   spreadsheetID = (tail === -1) ? firstHalf : firstHalf.substring(0, tail);
   if (spreadsheetID === '') return false;
-  console.log("valid id: " + spreadsheetID);
-  return true;
+  return spreadsheetID;
+}
+
+function initialize() {
+  sheets.spreadsheets.values.update(getValueRange('A1:E1', 
+    [["netID", "Timestamp", "First Name", "Last Name", "email"]]), 
+  function(err, response) {
+    if (err) {
+      console.log('Failed to initialize spreadsheet: ' + err);
+    }
+    else {
+      console.log("Initialized sheet successfully");
+    }
+  });
 }
 
 /**
  * Read cell A1 async, values returned are passed into update and
  * written to cell A1. If successfull, we know spreadsheet writeable
  */
- function isWriteable() {
+//  function isWriteable() {
+//   return new Promise(function(resolve, reject) {
+//     sheets.spreadsheets.values.get({
+//       auth: authorization,
+//       spreadsheetId: spreadsheetID,
+//       range: 'A1',
+//     }, function(err, response) {
+//       if (err) {
+//         console.log('Spreadsheet not readable: ' + err);
+//         reject('error');
+//       }
+//       else {
+//         sheets.spreadsheets.values.update(getValueRange('A1', response.values), function(err, response) {
+//           if (err) {
+//             console.log('Spreadsheet not writeable: ' + err);
+//             reject('error');
+//           }
+//           else {console.log("done with dis");
+//             // if(response.values === undefined) initialize();
+//             // sheets.spreadsheets.get({
+//             //   auth: authorization,
+//             //   spreadsheetId: spreadsheetID
+//             // }, function(err, response) {
+//             //   if (err) {
+//             //     console.log('Title not retrievable: ' + err);
+//             //     reject('error');
+//             //   }
+//             //   else {
+//             //     console.log('Spreadsheet writable');
+//             //     sheetID = 0;
+//             //     resolve(response);
+//             //   }
+//             // });
+//           }
+//         });
+//       }
+//     });
+// });
+// }
+
+function isWriteable2(spreadsheetID, sheetID, sheet) {
   return new Promise(function(resolve, reject) {
-    sheets.spreadsheets.values.get({
+    sheets.spreadsheets.values.batchGet({
       auth: authorization,
       spreadsheetId: spreadsheetID,
-      range: 'A1',
+      ranges: 'A3'//sheet + '!A3',
     }, function(err, response) {
       if (err) {
         console.log('Spreadsheet not readable: ' + err);
         reject('error');
       }
       else {
-        sheets.spreadsheets.values.update(getValueRange('A1', response.values), function(err, response) {
+        var init; // Should headers row be initialized?
+        if(response.valueRanges[0].values == undefined) init = true;
+        else {
+          init = false;
+          var cellA1 = response.valueRanges[0].values[0][0];
+        }
+        sheets.spreadsheets.batchUpdate(
+        {
+          auth: authorization,
+          spreadsheetId: spreadsheetID,
+          resource: {
+            requests: [
+            {
+              updateCells: { 
+                "rows": [
+                {
+                  "values": [{ 
+                    userEnteredValue: {
+                      stringValue: cellA1
+                    }
+                  }]
+                }],
+                "fields": "*", 
+                "start": {
+                  "sheetId" : sheetID, 
+                  "rowIndex": 0, 
+                  "columnIndex": 0
+                }
+              }
+            }],
+          }
+        }, function(err, response) {
           if (err) {
             console.log('Spreadsheet not writeable: ' + err);
             reject('error');
           }
           else {
+            //console.log("IS IT HERE2?" + spreadsheetID);
+            // if updateRows == undefined (i.e. A1 empty) initialize sheet!
+            if(init) initialize();
+
             sheets.spreadsheets.get({
               auth: authorization,
               spreadsheetId: spreadsheetID
@@ -198,20 +297,62 @@ var TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
                 reject('error');
               }
               else {
-                console.log('Spreadsheet writable');
-                //console.log(response.sheets[0].properties.title);
-                sheetID = 0;
-                resolve(response);
+                var title = response.properties.title;
+                sheets.spreadsheets.get({
+                  auth: authorization,
+                  spreadsheetId: spreadsheetID
+                }, function(err, response) {
+                  if (err) {
+                    console.log('Title not retrievable: ' + err);
+                    reject('error');
+                  }
+                  else {
+                    console.log('Spreadsheet writable');
+                    resolve(JSON.stringify({
+                      title: title, 
+                      sheetId: sheetID, 
+                      sheets: response.sheets
+                    }));
+                  }
+                });
               }
             });
           }
         });
       }
     });
-});
+  });
 }
 
-function update(netid, timestamp, firstName, lastName, email) {
+function makeRange(sheet) {
+  return sheet + '!A1:E1';
+}
+
+function getRow(netid, firstName, lastName, email) {
+  return [{ 
+    userEnteredValue: {
+      stringValue: netid
+    }
+  }, { 
+    userEnteredValue: {
+      stringValue: Date()
+    }
+  }, { 
+    userEnteredValue: {
+      stringValue: firstName
+    }
+  }, { 
+    userEnteredValue: {
+      stringValue: lastName
+    }
+  }, { 
+    userEnteredValue: {
+      stringValue: email
+    }
+  }];
+}
+
+function update(values, spreadsheetID, sheetID) {
   sheets.spreadsheets.batchUpdate({
     auth: authorization,
     spreadsheetId: spreadsheetID,
@@ -222,27 +363,7 @@ function update(netid, timestamp, firstName, lastName, email) {
           sheetId: sheetID, 
           "rows": [
           {
-            "values": [{ 
-              userEnteredValue: {
-                stringValue: netid
-              }
-            }, { 
-              userEnteredValue: {
-                stringValue: timestamp
-              }
-            }, { 
-              userEnteredValue: {
-                stringValue: firstName
-              }
-            }, { 
-              userEnteredValue: {
-                stringValue: lastName
-              }
-            }, { 
-              userEnteredValue: {
-                stringValue: email
-              }
-            }],
+            "values": values
           }],
           "fields": "*"
         }
@@ -254,6 +375,7 @@ function update(netid, timestamp, firstName, lastName, email) {
     }
     else {
       console.log('Updated sheet');
+      // TODO: SEND EMAIL
     }
   });
 }
@@ -263,8 +385,7 @@ function update(netid, timestamp, firstName, lastName, email) {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
- function getValueRange(range, array) {
-  //console.log(array);
+ function getValueRange(range, array, spreadsheetId) {
   return {
     auth: authorization,
     spreadsheetId: spreadsheetID,
@@ -277,7 +398,7 @@ function update(netid, timestamp, firstName, lastName, email) {
   };
 }
 
-function swipeIn(netid) {
+function swipeIn(netid, spreadsheetID, sheetID) {
   request.post(
   {
     url : 'https://gw-tst.its.yale.edu/soa-gateway/cs50?netid=' + netid + '&type=json'
@@ -285,6 +406,7 @@ function swipeIn(netid) {
   function (error, response, body) {
     if(error) {
       console.log(error);
+      return;
     }
     try {
       var result = JSON.parse(body);
@@ -292,12 +414,11 @@ function swipeIn(netid) {
       console.log("Unable to find student");
       return;
     }
-    update(netid, 
-      Date(),
+    update(getRow(netid,
       result["ServiceResponse"]["Record"]["FirstName"], 
       result["ServiceResponse"]["Record"]["LastName"],
       result["ServiceResponse"]["Record"]["EmailAddress"]
-      );
+      ), spreadsheetID, sheetID);
   }
   );
 }
