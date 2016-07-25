@@ -10,23 +10,159 @@ const swipeReader = document.querySelector('.swipe-reader');
 const dropDown = document.querySelector('.drop');
 
 
-var spreadsheetID = localStorage.getItem("lastId");
-var sheetID;
-var sheetName;
+let spreadsheetId = localStorage.getItem('lastSpreadsheetId');
+let sheetId;
+let sheetName;
 
 dropDown.style.visibility = 'hidden'; // hide initially
-sheetUrl.value = localStorage.getItem("lastUrl");
+sheetUrl.value = localStorage.getItem('lastUrl');
 sheetUrl.focus(); // initially url textbox has focus
 swipeReader.disabled = true;  // initially, swipe textbox disabled
+
+/**
+ * Determines whether url contains valid spreadsheet ID
+ */
+const validateUrl = (url) => {
+  const head = /spreadsheets\/d\//;
+  const beg = url.search(head);
+  // If no match, spreadsheetID will remain empty
+  const firstHalf = (beg === -1) ? '' : url.substring(beg).substring(15);
+  const tail = firstHalf.indexOf('/');
+  const ID = (tail === -1) ? firstHalf : firstHalf.substring(0, tail);
+  if (ID === '') return false;
+  // store current session info
+  localStorage.setItem('lastSpreadsheetId', ID);
+  localStorage.setItem('lastUrl', url);
+  // make the info available globally to client
+  spreadsheetId = ID;
+  sheetId = 0; // first sheet is default
+  return true;
+};
+
+/**
+ * Renders drop-down menu for user to
+ * select sheet within the spreadsheet
+ */
+function renderDropdown(sheets) {
+  dropDown.innerHTML = '';
+  sheets.forEach((sheet, i) => {
+    dropDown.options[i] =
+      new Option(sheet.properties.title, sheet.properties.sheetId);
+  });
+  dropDown.style.visibility = 'visible';
+}
+
+/**
+ * Batch get request to server to obtain spreadsheet
+ * title and array of available sheets to render dropdown
+ */
+const getSpreadsheetInfo = () => {
+  const body = {
+    spreadsheetId,
+  };
+
+  fetch(`${host}/spreadsheet`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then(res => res.text())
+  .then(res => {
+    // console.log('RESPONSE I GOT: ', res);
+    if (res === 'fail') alert('Spreadsheet info not retrievable');
+    else {
+      const response = JSON.parse(res);
+      sheetName = response.properties.title;
+      sheetUrl.value = `Writing to: ${sheetName}`;
+      renderDropdown(response.sheets);
+      swipeReader.disabled = false;
+      swipeReader.focus();
+    }
+  })
+  .catch(err => {
+    console.log("Cannot get sheet information: " + err);
+  });
+};
+
+/**
+ * Makes get request to server, notifying the
+ * user if the spreadsheet is not writeable.
+ * If it is, enables swipe textbox
+ */
+const isWriteable = (type) => {
+  const body = {
+    spreadsheetId,
+    sheetId,
+  };
+
+  fetch(`${host}/writeable`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then(res => res.text())
+  .then(res => {
+    // console.log('RESPONSE I GOT: ', res);
+    if (res === 'fail') {
+      // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
+      if (type === 'sheet') {
+        dropDown.selectedIndex = 0;
+        sheetId = dropDown.options[0].value;
+        sheetName = dropDown.options[0].text;
+        alert("Sheet not writeable, switching to " + sheetName);
+        swipeReader.focus();
+      }
+      else alert('Spreadsheet not writeable (make sure the first sheet is writeable)');
+      // in fail case, if we were changing sheet, revert global heet name and sheetId
+      // to local storage 'firstSheet', revert dropdown to first sheet
+    } else {
+      localStorage.setItem('lastSpreadsheetId', spreadsheetId);
+      if (type === 'spreadsheet') getSpreadsheetInfo();
+      else {
+        sheetName = dropDown.options[dropDown.selectedIndex].text;
+        swipeReader.focus();
+      }
+    }
+  })
+  .catch(err => {
+    alert(`Cannot connect to server: ${err}`);
+  });
+};
+
+/**
+ * Makes post request to server with entered information
+ */
+const swipeIn = netid => {
+  const body = {
+    netid,
+    spreadsheetId,
+    sheetId,
+  };
+  fetch(`${host}/swipe`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then(res => {
+    console.log('Updated sheet: ', res);
+  }).catch(err => {
+    console.log('Failed to swipe in: ', err);
+  });
+};
 
 /**
  * Event listener for url submission.
  * Upon submission, validates url
  */
-submitButton.addEventListener('click', e => {
+submitButton.addEventListener('click', () => {
   dropDown.style.visibility = 'hidden';
-  sheetID = 0;
-  validateUrl(sheetUrl.value);
+  swipeReader.disabled = true;
+  if (validateUrl(sheetUrl.value)) {
+    isWriteable('spreadsheet'); // try writing to the first sheet
+  }
 });
 
 /**
@@ -34,7 +170,7 @@ submitButton.addEventListener('click', e => {
  * Attempts to swipe in person, then clears the textbox
  */
 swipeReader.addEventListener('keyup', e => {
-  if(e.keyCode === 13) {
+  if (e.keyCode === 13) {
     swipeIn(e.target.value);
     e.target.value = '';
   }
@@ -44,176 +180,7 @@ swipeReader.addEventListener('keyup', e => {
  * Event listener for drop-down sheet selector
  */
 dropDown.addEventListener('change', e => {
-  // changeSheet(e.target.value, e.target.index);
-  sheetID = e.target.value;
-  changeSheet(e.target.value, dropDown.options[dropDown.selectedIndex].text);
-  // TODO: here pass false; i.e. don't render. but need to pass
-  //  spreadsheet and sheet ID as parameters
+  sheetId = e.target.value;
+  sheetName = dropDown.options[dropDown.selectedIndex].text;
+  isWriteable('sheet');
 });
-
-/**
- * Makes post request to server to authorize user
- */
-function authorize() {
-  fetch(host + '/authorize', {
-    method: 'POST'
-  }).then(function(res) {
-    return res.text();
-  }).then(function(res) {
-    console.log(res);
-  }).catch(function(err) {
-    console.log('Failed to authorize: ' + err);
-  });
-}
-
-/**
- * Makes post request to server to determine
- * the validity of the provided url
- */
-function validateUrl(url) {
-  var body = {
-      url: url
-  };
-
-  fetch(host + '/url', {
-    method: 'POST',
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  }).then(function(res) {
-    return res.text();
-  }).then(function(res_text) {
-    if(res_text == 'invalid') {
-      window.alert('Enter a valid sheets url');
-    } else {
-      localStorage.setItem("lastId", res_text);
-      localStorage.setItem("lastUrl", url);
-      spreadsheetID = res_text;
-
-      isWriteable(true);
-    }
-  }).catch(function(err) {
-    console.log('Failed to validate ID: ' + err);
-  });
-}
-
-/**
- * Makes get request to server, notifying the
- * user if the spreadsheet is not writeable.
- * If it is, enables swipe textbox
- */
-
- // TODO : modify this to take in a boolean; true if it is checking
- // if the spreadsheet is writeabe, so that we can disable/enable textboxes,
- // false otherwise. In the back end this will determine whether the dropdown
- // will be rendered again (because it happens in the back end's isWriteable)
-function isWriteable(render){//(render) {
-  var body = {
-      spreadsheetId : spreadsheetID,
-      sheetId: sheetID,
-      sheet: '',
-      ext: 'A1'//sheetID +
-  };
-
-  fetch(host + '/writeable', {
-    method: 'POST',
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  }).then(function(res) {
-    return res.text();
-  }).then(function(res_text) {
-    if(res_text === 'fail'){
-
-      // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
-      alert("Spreadsheet not writeable");
-    } else {
-      var response = JSON.parse(res_text);
-      swipeReader.disabled = false;
-      swipeReader.focus();
-      localStorage.setItem("lastId", response.spreadsheetId);
-      if(render) {
-        sheetUrl.value = "Writing to: " + response.title;
-        //sheetUrl.value = = "Writing to: "
-        renderDropdown(response.sheets); // this should take sheets json
-      }
-    }
-  }).catch(function(err) {
-    alert("Cannot connect to server: " + err);
-  });
-}
-
-/**
- * Renders drop-down menu for user to
- * select sheet within the spreadsheet
- */
-function renderDropdown(response) {
-  dropDown.innerHTML = "";
-  for (i=0; i<response.length; i++){
-    dropDown.options[i] =
-      new Option(response[i].properties.title, response[i].properties.sheetId);
-  }
-  dropDown.style.visibility = 'visible';
-}
-/**
- * Makes post request with the id
- * of the sheet selected by the user
- */
-function changeSheet(sheetId, title) {
-  var body = {
-    spreadsheetId: spreadsheetID,
-    sheetId: sheetId,
-    sheet: title,
-    ext: '!A1'
-  };
-  fetch(host + '/writeable', {
-    method: 'POST',
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  }).then(function(res) {
-    return res.text();
-  }).then(function(res_text) {
-    if(res_text === 'fail'){
-      // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
-      dropDown.selectedIndex = 0;
-      sheetID = dropDown.options[dropDown.selectedIndex].value;
-      alert("Sheet not writeable, switching to " + dropDown.options[dropDown.selectedIndex].text);
-    } else {
-      var parse = JSON.parse(res_text); // .title, .sheetId. .sheets
-      sheetID = parse.sheetId; // set global sheetID
-      sheetName = dropDown.options[dropDown.selectedIndex].text; // set global sheetName
-    }
-    swipeReader.disabled = false;
-    swipeReader.focus();
-  }).catch(function(err) {
-    alert("Cannot connect to server: " + err);
-  });
-}
-
-/**
- * Makes post request to server with entered information
- */
-function swipeIn(netid) {
-  var body = {
-    netid: netid,
-    spreadsheetId: spreadsheetID,
-    sheetId: sheetID
-  };
-  fetch(host + '/swipe', {
-    method: 'POST',
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  }).then(function(res) {
-    console.log('Server responded');
-  }).catch(function(err) {
-    console.log('Failed to swipe in: ' + err);
-  });
-}
-
-authorize();

@@ -40,9 +40,8 @@ const ensureHeaders = (spreadsheetId, sheetTitle) => {
     `${sheetTitle}!A1:E1`,
     [['netID', 'Timestamp', 'First Name', 'Last Name', 'email']],
     spreadsheetId
-  ), (err, res) => {
+  ), (err) => {
     if (err) console.log('Failed to ensure headers:', err);
-    else console.log('Ensured headers:', res);
   });
 };
 
@@ -57,7 +56,7 @@ const isWriteable = (spreadsheetId, sheetId) => new Promise((resolve, reject) =>
           rows: [{
             values: [{
               userEnteredValue: {
-                stringValue: 'erlkgj',
+                stringValue: ' ',
               },
             }],
           }],
@@ -65,7 +64,7 @@ const isWriteable = (spreadsheetId, sheetId) => new Promise((resolve, reject) =>
           start: {
             sheetId,
             rowIndex: 0,
-            columnIndex: 0,
+            columnIndex: 25,
           },
         },
       }],
