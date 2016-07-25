@@ -8,16 +8,20 @@ const submitButton = document.querySelector('.submit-button');
 const swipeReader = document.querySelector('.swipe-reader');
 // drop-down menu for sheet selection
 const dropDown = document.querySelector('.drop');
+// button for exporting data
+const exportButton = document.querySelector('.export-button');
 
 
 let spreadsheetId = localStorage.getItem('lastSpreadsheetId');
+let spreadsheetName;
 let sheetId;
 let sheetName;
 
-dropDown.style.visibility = 'hidden'; // hide initially
-sheetUrl.value = localStorage.getItem('lastUrl');
-sheetUrl.focus(); // initially url textbox has focus
+dropDown.style.visibility = 'hidden'; // hide dropdown initially
 swipeReader.disabled = true;  // initially, swipe textbox disabled
+exportButton.disabled = true; // initially, export button disabled
+sheetUrl.value = localStorage.getItem('lastUrl'); // last session url
+sheetUrl.focus(); // initially url textbox has focus
 
 /**
  * Determines whether url contains valid spreadsheet ID
@@ -73,14 +77,15 @@ const getSpreadsheetInfo = () => {
     if (res === 'fail') alert('Spreadsheet info not retrievable');
     else {
       const response = JSON.parse(res);
-      sheetName = response.properties.title;
-      sheetUrl.value = `Writing to: ${sheetName}`;
+      spreadsheetName = response.properties.title;
+      sheetName = response.sheets[0].properties.title;
+      sheetUrl.value = `Writing to: ${spreadsheetName}`;
       renderDropdown(response.sheets);
       swipeReader.disabled = false;
       swipeReader.focus();
     }
   })
-  .catch(err => console.log("Cannot get sheet information: " + err));
+  .catch(err => console.log(`Cannot get sheet information: ${err}`));
 };
 
 /**
@@ -102,20 +107,21 @@ const isWriteable = (type) => {
     body: JSON.stringify(body),
   }).then(res => res.text())
   .then(res => {
-    // console.log('RESPONSE I GOT: ', res);
     if (res === 'fail') {
       // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
       if (type === 'sheet') {
         dropDown.selectedIndex = 0;
         sheetId = dropDown.options[0].value;
         sheetName = dropDown.options[0].text;
-        alert("Sheet not writeable, switching to " + sheetName);
+        alert(`Sheet not writeable, switching to ${sheetName}`);
         swipeReader.focus();
+        exportButton.disabled = false;
       }
       else alert('Spreadsheet not writeable (make sure the first sheet is writeable)');
       // in fail case, if we were changing sheet, revert global heet name and sheetId
       // to local storage 'firstSheet', revert dropdown to first sheet
     } else {
+      exportButton.disabled = false;
       localStorage.setItem('lastSpreadsheetId', spreadsheetId);
       if (type === 'spreadsheet') getSpreadsheetInfo();
       else {
@@ -133,6 +139,9 @@ const isWriteable = (type) => {
  * Makes post request to server with entered information
  */
 const swipeIn = netid => {
+  if (netid === '24688') netid = 'hpa5';
+  if (netid === '45672') netid = 'dwp7';
+
   const body = {
     netid,
     spreadsheetId,
@@ -144,10 +153,39 @@ const swipeIn = netid => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-  }).then(res => {
-    console.log('Updated sheet: ', res);
-  }).catch(err => {
+  }).then(res => res.text()
+  ).then(res => {
+    if (res === 'fail') alert('Could not update student');
+    else console.log('Updated sheet');
+  })
+  .catch(err => {
     console.log('Failed to swipe in: ', err);
+  });
+};
+
+const exportData = () => {
+  const body = {
+    spreadsheetId,
+    sheetName,
+  };
+
+  fetch(`${host}/export`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then(res => res.json())
+  .then(json => {
+    json.values[0] = [];
+    // Iterate over row entries
+    // json.values.forEach((entry, i) => {
+    //   if (entry.length !== 0) console.log(entry, i);
+    // });
+  })
+  .catch(err => {
+    console.log(`Failed to export data: ${err}`);
+    alert(`Failed to export data from ${sheetName}`)
   });
 };
 
@@ -181,4 +219,8 @@ dropDown.addEventListener('change', e => {
   sheetId = e.target.value;
   sheetName = dropDown.options[dropDown.selectedIndex].text;
   isWriteable('sheet');
+});
+
+exportButton.addEventListener('click', () => {
+  exportData();
 });
