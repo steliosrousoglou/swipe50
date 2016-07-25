@@ -24,6 +24,9 @@ const oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 oauth2Client.credentials = token;
 const authorization = oauth2Client;
 
+/*
+ * Returns ValueRange object required by spreadsheets.values.update
+ */
 const getValueRange = (range, array, spreadsheetId) => ({
   auth: authorization,
   spreadsheetId,
@@ -35,6 +38,9 @@ const getValueRange = (range, array, spreadsheetId) => ({
   },
 });
 
+/*
+ * Writes headers to the first row of the specified sheet
+ */
 const ensureHeaders = (spreadsheetId, sheetTitle) => {
   sheets.spreadsheets.values.update(getValueRange(
     `${sheetTitle}!A1:E1`,
@@ -43,6 +49,10 @@ const ensureHeaders = (spreadsheetId, sheetTitle) => {
     ), () => {});
 };
 
+/*
+ * Attempt to write to cell 0, 25 of specified sheet. Determines
+ * whether sheet is writeable, resolves/rejects accordingly.
+ */
 const isWriteable = (spreadsheetId, sheetId) => new Promise((resolve, reject) => {
   // Make attempt to write to sheet
   sheets.spreadsheets.batchUpdate({
@@ -73,6 +83,9 @@ const isWriteable = (spreadsheetId, sheetId) => new Promise((resolve, reject) =>
   });
 });
 
+/*
+ * Returns new entry's info formatted as a row
+ */
 const studentRow = (netid, firstName, lastName, email) => [
   { userEnteredValue: { stringValue: netid } },
   { userEnteredValue: { stringValue: Date() } },
@@ -81,6 +94,9 @@ const studentRow = (netid, firstName, lastName, email) => [
   { userEnteredValue: { stringValue: email } },
 ];
 
+/*
+ * Makes post request to Yale API and fetches student info
+ */
 const getStudent = (netid) => new Promise((resolve, reject) => {
   request.post({
     url: `https://gw-tst.its.yale.edu/soa-gateway/cs50?netid=${netid}&type=json`,
@@ -89,9 +105,11 @@ const getStudent = (netid) => new Promise((resolve, reject) => {
     // Format the object returned from school
     let student;
     try {
-      console.log("HELLO");
       student = JSON.parse(body);
-    } catch (err) { console.log("HERE");console.log(err); reject();}
+    } catch (err) {
+      reject();
+      return;
+    }
 
     const values = studentRow(netid,
       student.ServiceResponse.Record.FirstName,
@@ -102,6 +120,10 @@ const getStudent = (netid) => new Promise((resolve, reject) => {
   });
 });
 
+/*
+ * Fetches information about the spreadsheet and initializes
+ * the first row of every sheet to the standard headers
+ */
 const getSpreadsheet = (spreadsheetId) => new Promise((resolve, reject) => {
   sheets.spreadsheets.get({
     auth: authorization,
@@ -113,6 +135,9 @@ const getSpreadsheet = (spreadsheetId) => new Promise((resolve, reject) => {
   });
 });
 
+/*
+ * Fetches all the cell data from specified sheet
+ */
 const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, reject) => {
   sheets.spreadsheets.values.get({
     auth: authorization,
@@ -126,18 +151,31 @@ const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, r
   });
 });
 
+/*
+ * Endpoint to determine if specified sheet is writeable, responds
+ * with keyword 'fail' if it is not.
+ */
 app.post('/writeable', (req, res) => {
   isWriteable(req.body.spreadsheetId, req.body.sheetId)
   .then(body => res.send(body))
   .catch(() => res.send('fail'));
 });
 
+/*
+ * Endpoint to respond with spreadsheet information such as
+ * title of spreadsheet and array of available sheets, responds
+ * with keyword 'fail' to notify front end
+ */
 app.post('/spreadsheet', (req, res) => {
   getSpreadsheet(req.body.spreadsheetId)
   .then(body => res.send(body))
   .catch(() => res.send('fail'));
 });
 
+/*
+ * Endpoint to add a row to specified sheet, or respond
+ * with keyword 'fail' to notify front end
+ */
 app.post('/swipe', (req, res) => {
   getStudent(req.body.netid)
   .then(values => {
@@ -161,6 +199,10 @@ app.post('/swipe', (req, res) => {
   }).catch(() => res.send('fail'));
 });
 
+/*
+ * Endpoint to send all cell data available on specified sheet
+ * for purposes of analyzing attendance
+ */
 app.post('/export', (req, res) => {
   getSpreadsheetData(req.body.spreadsheetId, req.body.sheetName)
   .then(body => res.send(body))

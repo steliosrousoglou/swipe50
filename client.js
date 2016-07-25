@@ -184,8 +184,8 @@ const exportData = () => {
     // });
   })
   .catch(err => {
-    console.log(`Failed to export data: ${err}`);
-    alert(`Failed to export data from ${sheetName}`)
+    console.log(`Error exporting sheet ${sheetName}: ${err}`);
+    alert(`Failed to export data from ${sheetName}`);
   });
 };
 
