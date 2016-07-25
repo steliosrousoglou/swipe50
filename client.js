@@ -9,28 +9,13 @@ const swipeReader = document.querySelector('.swipe-reader');
 // drop-down menu for sheet selection
 const dropDown = document.querySelector('.drop');
 
-var spreadsheetID;
+
+var spreadsheetID = localStorage.getItem("lastId");
 var sheetID;
 var sheetName;
 
-/**
- * Extracts spreadsheet ID from the url provided using regex
- * If a non-empty ID is found, returns true;
- * @param {string} url The url provided by the user
- * @param {function} callback The callback to call with the authorized client.
- */
- function parseInputID(url) {
-  var head = /spreadsheets\/d\//;
-  var beg = url.search(head);
-  // If no match, spreadsheetID will remain empty
-  firstHalf = (beg == -1) ? "" : url.substring(beg).substring(15);
-  var tail = firstHalf.indexOf('/');
-  spreadsheetID = (tail === -1) ? firstHalf : firstHalf.substring(0, tail);
-  if (spreadsheetID === '') return false;
-  return spreadsheetID;
-}
-
 dropDown.style.visibility = 'hidden'; // hide initially
+sheetUrl.value = localStorage.getItem("lastUrl");
 sheetUrl.focus(); // initially url textbox has focus
 swipeReader.disabled = true;  // initially, swipe textbox disabled
 
@@ -61,7 +46,7 @@ swipeReader.addEventListener('keyup', e => {
 dropDown.addEventListener('change', e => {
   // changeSheet(e.target.value, e.target.index);
   sheetID = e.target.value;
-  changeSheet(spreadsheetID, e.target.value, dropDown.options[dropDown.selectedIndex].text);
+  changeSheet(e.target.value, dropDown.options[dropDown.selectedIndex].text);
   // TODO: here pass false; i.e. don't render. but need to pass
   //  spreadsheet and sheet ID as parameters
 });
@@ -102,7 +87,10 @@ function validateUrl(url) {
     if(res_text == 'invalid') {
       window.alert('Enter a valid sheets url');
     } else {
+      localStorage.setItem("lastId", res_text);
+      localStorage.setItem("lastUrl", url);
       spreadsheetID = res_text;
+
       isWriteable(true);
     }
   }).catch(function(err) {
@@ -116,7 +104,7 @@ function validateUrl(url) {
  * If it is, enables swipe textbox
  */
 
- //TODO : modify this to take in a boolean; true if it is checking
+ // TODO : modify this to take in a boolean; true if it is checking
  // if the spreadsheet is writeabe, so that we can disable/enable textboxes,
  // false otherwise. In the back end this will determine whether the dropdown
  // will be rendered again (because it happens in the back end's isWriteable)
@@ -145,6 +133,7 @@ function isWriteable(render){//(render) {
       var response = JSON.parse(res_text);
       swipeReader.disabled = false;
       swipeReader.focus();
+      localStorage.setItem("lastId", response.spreadsheetId);
       if(render) {
         sheetUrl.value = "Writing to: " + response.title;
         //sheetUrl.value = = "Writing to: "
@@ -160,18 +149,10 @@ function isWriteable(render){//(render) {
  * Renders drop-down menu for user to
  * select sheet within the spreadsheet
  */
-// function renderDropdown(response) {
-//   dropDown.innerHTML = "";
-//   for (i=0; i<response.sheets.length; i++){
-//     dropDown.options[dropDown.options.length] =
-//       new Option(response.sheets[i].properties.title, response.sheets[i].properties.sheetId);
-//   }
-//   dropDown.style.visibility = 'visible';
-// }
 function renderDropdown(response) {
   dropDown.innerHTML = "";
   for (i=0; i<response.length; i++){
-    dropDown.options[dropDown.options.length] =
+    dropDown.options[i] =
       new Option(response[i].properties.title, response[i].properties.sheetId);
   }
   dropDown.style.visibility = 'visible';
@@ -180,14 +161,13 @@ function renderDropdown(response) {
  * Makes post request with the id
  * of the sheet selected by the user
  */
-function changeSheet(spreadsheetID, sheetId, title) {
+function changeSheet(sheetId, title) {
   var body = {
     spreadsheetId: spreadsheetID,
     sheetId: sheetId,
     sheet: title,
     ext: '!A1'
   };
-
   fetch(host + '/writeable', {
     method: 'POST',
     headers: {
@@ -210,7 +190,7 @@ function changeSheet(spreadsheetID, sheetId, title) {
     swipeReader.disabled = false;
     swipeReader.focus();
   }).catch(function(err) {
-    alert("Failed to change sheet: " + err);
+    alert("Cannot connect to server: " + err);
   });
 }
 
