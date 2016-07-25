@@ -21,6 +21,7 @@ swipeReader.disabled = true;  // initially, swipe textbox disabled
 
 /**
  * Determines whether url contains valid spreadsheet ID
+ * If it does, sets global spreadsheetId and sheetId (0 by default)
  */
 const validateUrl = (url) => {
   const head = /spreadsheets\/d\//;
@@ -53,8 +54,8 @@ function renderDropdown(sheets) {
 }
 
 /**
- * Batch get request to server to obtain spreadsheet
- * title and array of available sheets to render dropdown
+ * Batch get request to obtain spreadsheet title
+ * and array of available sheets (to render dropdown)
  */
 const getSpreadsheetInfo = () => {
   const body = {
@@ -69,7 +70,6 @@ const getSpreadsheetInfo = () => {
     body: JSON.stringify(body),
   }).then(res => res.text())
   .then(res => {
-    // console.log('RESPONSE I GOT: ', res);
     if (res === 'fail') alert('Spreadsheet info not retrievable');
     else {
       const response = JSON.parse(res);
@@ -80,9 +80,7 @@ const getSpreadsheetInfo = () => {
       swipeReader.focus();
     }
   })
-  .catch(err => {
-    console.log("Cannot get sheet information: " + err);
-  });
+  .catch(err => console.log("Cannot get sheet information: " + err));
 };
 
 /**
