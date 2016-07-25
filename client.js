@@ -13,8 +13,25 @@ var spreadsheetID;
 var sheetID;
 var sheetName;
 
+/**
+ * Extracts spreadsheet ID from the url provided using regex
+ * If a non-empty ID is found, returns true;
+ * @param {string} url The url provided by the user
+ * @param {function} callback The callback to call with the authorized client.
+ */
+ function parseInputID(url) {
+  var head = /spreadsheets\/d\//;
+  var beg = url.search(head);
+  // If no match, spreadsheetID will remain empty
+  firstHalf = (beg == -1) ? "" : url.substring(beg).substring(15);
+  var tail = firstHalf.indexOf('/');
+  spreadsheetID = (tail === -1) ? firstHalf : firstHalf.substring(0, tail);
+  if (spreadsheetID === '') return false;
+  return spreadsheetID;
+}
+
 dropDown.style.visibility = 'hidden'; // hide initially
-sheetUrl.focus(); // initially url textbox has focus 
+sheetUrl.focus(); // initially url textbox has focus
 swipeReader.disabled = true;  // initially, swipe textbox disabled
 
 /**
@@ -33,9 +50,9 @@ submitButton.addEventListener('click', e => {
  */
 swipeReader.addEventListener('keyup', e => {
   if(e.keyCode === 13) {
-    swipeIn(e.target.value); 
+    swipeIn(e.target.value);
     e.target.value = '';
-  } 
+  }
 });
 
 /**
@@ -45,7 +62,7 @@ dropDown.addEventListener('change', e => {
   // changeSheet(e.target.value, e.target.index);
   sheetID = e.target.value;
   changeSheet(spreadsheetID, e.target.value, dropDown.options[dropDown.selectedIndex].text);
-  // TODO: here pass false; i.e. don't render. but need to pass 
+  // TODO: here pass false; i.e. don't render. but need to pass
   //  spreadsheet and sheet ID as parameters
 });
 
@@ -65,7 +82,7 @@ function authorize() {
 }
 
 /**
- * Makes post request to server to determine 
+ * Makes post request to server to determine
  * the validity of the provided url
  */
 function validateUrl(url) {
@@ -74,10 +91,10 @@ function validateUrl(url) {
   };
 
   fetch(host + '/url', {
-    method: 'POST', 
+    method: 'POST',
     headers: {
       "Content-Type": "application/json"
-    }, 
+    },
     body: JSON.stringify(body)
   }).then(function(res) {
     return res.text();
@@ -99,29 +116,29 @@ function validateUrl(url) {
  * If it is, enables swipe textbox
  */
 
- //TODO : modify this to take in a boolean; true if it is checking 
- // if the spreadsheet is writeabe, so that we can disable/enable textboxes, 
- // false otherwise. In the back end this will determine whether the dropdown 
+ //TODO : modify this to take in a boolean; true if it is checking
+ // if the spreadsheet is writeabe, so that we can disable/enable textboxes,
+ // false otherwise. In the back end this will determine whether the dropdown
  // will be rendered again (because it happens in the back end's isWriteable)
 function isWriteable(render){//(render) {
   var body = {
-      spreadsheetId : spreadsheetID, 
-      sheetId: sheetID, 
+      spreadsheetId : spreadsheetID,
+      sheetId: sheetID,
       sheet: '',
-      ext: 'A1'//sheetID + 
+      ext: 'A1'//sheetID +
   };
 
   fetch(host + '/writeable', {
     method: 'POST',
     headers: {
       "Content-Type": "application/json"
-    }, 
-    body: JSON.stringify(body) 
+    },
+    body: JSON.stringify(body)
   }).then(function(res) {
     return res.text();
   }).then(function(res_text) {
     if(res_text === 'fail'){
-      
+
       // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
       alert("Spreadsheet not writeable");
     } else {
@@ -130,7 +147,7 @@ function isWriteable(render){//(render) {
       swipeReader.focus();
       if(render) {
         sheetUrl.value = "Writing to: " + response.title;
-        //sheetUrl.value = = "Writing to: " 
+        //sheetUrl.value = = "Writing to: "
         renderDropdown(response.sheets); // this should take sheets json
       }
     }
@@ -140,13 +157,13 @@ function isWriteable(render){//(render) {
 }
 
 /**
- * Renders drop-down menu for user to 
+ * Renders drop-down menu for user to
  * select sheet within the spreadsheet
  */
 // function renderDropdown(response) {
 //   dropDown.innerHTML = "";
 //   for (i=0; i<response.sheets.length; i++){
-//     dropDown.options[dropDown.options.length] = 
+//     dropDown.options[dropDown.options.length] =
 //       new Option(response.sheets[i].properties.title, response.sheets[i].properties.sheetId);
 //   }
 //   dropDown.style.visibility = 'visible';
@@ -154,7 +171,7 @@ function isWriteable(render){//(render) {
 function renderDropdown(response) {
   dropDown.innerHTML = "";
   for (i=0; i<response.length; i++){
-    dropDown.options[dropDown.options.length] = 
+    dropDown.options[dropDown.options.length] =
       new Option(response[i].properties.title, response[i].properties.sheetId);
   }
   dropDown.style.visibility = 'visible';
@@ -166,16 +183,16 @@ function renderDropdown(response) {
 function changeSheet(spreadsheetID, sheetId, title) {
   var body = {
     spreadsheetId: spreadsheetID,
-    sheetId: sheetId, 
-    sheet: title, 
+    sheetId: sheetId,
+    sheet: title,
     ext: '!A1'
   };
 
   fetch(host + '/writeable', {
-    method: 'POST', 
+    method: 'POST',
     headers: {
       "Content-Type": "application/json"
-    }, 
+    },
     body: JSON.stringify(body)
   }).then(function(res) {
     return res.text();
@@ -202,15 +219,15 @@ function changeSheet(spreadsheetID, sheetId, title) {
  */
 function swipeIn(netid) {
   var body = {
-    netid: netid, 
-    spreadsheetId: spreadsheetID, 
+    netid: netid,
+    spreadsheetId: spreadsheetID,
     sheetId: sheetID
   };
   fetch(host + '/swipe', {
-    method: 'POST', 
+    method: 'POST',
     headers: {
       "Content-Type": "application/json"
-    }, 
+    },
     body: JSON.stringify(body)
   }).then(function(res) {
     console.log('Server responded');
