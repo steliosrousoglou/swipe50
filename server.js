@@ -136,7 +136,7 @@ const getSpreadsheet = (spreadsheetId) => new Promise((resolve, reject) => {
 });
 
 /*
- * Fetches all the cell data from specified sheet
+ * Fetches all cell data from specified sheet
  */
 const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, reject) => {
   sheets.spreadsheets.values.get({
