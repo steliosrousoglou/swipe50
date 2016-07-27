@@ -8,7 +8,7 @@ const google = require('googleapis');
 const GoogleAuth = require('google-auth-library');
 const sheets = google.sheets('v4');
 const fs = require('fs');
-
+// set default time-zone for timestamps
 process.env.TZ = 'America/New_York';
 
 app.use(bodyParser.json());
@@ -16,25 +16,26 @@ app.use(bodyParser.urlencoded({
   extended: true,
 }));
 
+// create and store credentials
 const clientSecret = creds.installed.client_secret;
 const clientId = creds.installed.client_id;
 const redirectUrl = creds.installed.redirect_uris[0];
-const auth = new GoogleAuth();
-const oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+const authorization = new GoogleAuth();
+const oauth2Client = new authorization.OAuth2(clientId, clientSecret, redirectUrl);
 
 oauth2Client.credentials = token;
-const authorization = oauth2Client;
+const auth = oauth2Client;
 
 /*
  * Returns ValueRange object required by spreadsheets.values.update
  */
-const getValueRange = (range, array, spreadsheetId) => ({
-  auth: authorization,
+const getValueRange = (range, values, spreadsheetId) => ({
+  auth,
   spreadsheetId,
   range,
   valueInputOption: 'USER_ENTERED',
   resource: {
-    values: array,
+    values,
     major_dimension: 'ROWS',
   },
 });
@@ -57,7 +58,7 @@ const ensureHeaders = (spreadsheetId, sheetTitle) => {
 const isWriteable = (spreadsheetId, sheetId) => new Promise((resolve, reject) => {
   // Make attempt to write to sheet
   sheets.spreadsheets.batchUpdate({
-    auth: authorization,
+    auth,
     spreadsheetId,
     resource: {
       requests: [{
@@ -106,12 +107,12 @@ const getStudent = netid => new Promise((resolve, reject) => {
     // Format the object returned from school
     let student;
     try {
-      student = JSON.parse(body);
+      student = JSON.parse(body); // throws error if not json object
     } catch (err) {
       reject();
       return;
     }
-
+    // format the fetched values
     const values = studentRow(netid,
       student.ServiceResponse.Record.FirstName,
       student.ServiceResponse.Record.LastName,
@@ -127,7 +128,7 @@ const getStudent = netid => new Promise((resolve, reject) => {
  */
 const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
   sheets.spreadsheets.get({
-    auth: authorization,
+    auth,
     spreadsheetId,
   }, (err, res) => {
     if (err) reject('error');
@@ -137,13 +138,13 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
 });
 
 /*
- * Fetches all cell data from specified sheet
+ * Fetches all cell data from specified sheet, for exporting
  */
-const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, reject) => {
+const getSpreadsheetData = (spreadsheetId, range) => new Promise((resolve, reject) => {
   sheets.spreadsheets.values.get({
-    auth: authorization,
+    auth,
     spreadsheetId,
-    range: sheetName,
+    range,
   }, (err, res) => {
     if (err) {
       reject(err);
@@ -182,7 +183,7 @@ app.post('/swipe', (req, res) => {
   .then(values => {
     // Append the values to the sheet
     sheets.spreadsheets.batchUpdate({
-      auth: authorization,
+      auth,
       spreadsheetId: req.body.spreadsheetId,
       resource: {
         requests: [{
@@ -227,37 +228,38 @@ const processData = data => {
     const time = id[1].match(getTime);
     const checkIn = time[0];
     if (staff.indexOf(id[0]) !== -1) staffAttending.push([id[0], checkIn, id[2], id[3]]);
-    else studentsAttending.push([id[0], checkIn, id[2], id[3]]);
+    else studentsAttending.push([id[0], checkIn, id[2], id[3], id[4]]);
   });
 
   // store all late staff
   const lateStaff = staffAttending.filter(s => s[1] > '14:00:00');
   const ontimeStaff = staffAttending.filter(s => s[1] <= '14:00:00');
-  response = response.concat(separator);
-  response = response.concat('\nSTAFF INFO\n');
-  response = response.concat(`# staff: ${staffAttending.length}\n`);
-  response = response.concat(`# late: ${lateStaff.length}\n`);
-  response = response.concat(`# on-time: ${ontimeStaff.length} \n`);
-  response = response.concat('\nLate: \n');
+  response += separator;
+  response += '\nSTAFF INFO\n';
+  response += `# staff: ${staffAttending.length}\n`;
+  response += `# late: ${lateStaff.length}\n`;
+  response += `# on-time: ${ontimeStaff.length} \n`;
+  response += '\nLate: \n';
   lateStaff.forEach(x => {
-    response = response.concat(`${x[2]} ${x[3]}\n`);
+    response += `${x[1]}: ${x[2]} ${x[3]}\n`;
   });
-  response = response.concat('\nOn Time: \n');
+  response += '\nOn Time: \n';
   ontimeStaff.forEach(x => {
-    response = response.concat(`${x[2]} ${x[3]}\n`);
+    response += `${x[1]}: ${x[2]} ${x[3]}\n`;
   });
-  response = response.concat(separator);
-  response = response.concat('\nSTUDENT INFO\n\n');
-  response = response.concat(`# students: ${studentsAttending.length}\n`);
+  response += separator;
+  response += '\nSTUDENT INFO\n\n';
+  response += `# students: ${studentsAttending.length}\n`;
   studentsAttending.forEach(x => {
-    response = response.concat(`${x[2]} ${x[3]}\n`);
+    response += `${x[2]} ${x[3]}\n`;
   });
-  response = response.concat(separator);
+  response += separator;
+  response += '\nSTUDENT EMAILS\n\n';
 
-  console.log(response);
-
-  // everyone's emails
-  const emails = students.map(x => x[4]);
+  // add students' emails to response
+  studentsAttending.map(x => x[4]).forEach(x => {
+    if (x) response += `${x}\n`;
+  });
 
   return response;
 };
