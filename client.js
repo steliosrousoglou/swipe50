@@ -26,9 +26,9 @@ const disableSwipe = () => {
   exportButton.disabled = true;
 };
 
-dropDown.style.visibility = 'hidden'; // hide dropdown initially
+dropDown.style.visibility = 'hidden';
 sheetUrl.value = localStorage.getItem('lastUrl'); // last session url
-sheetUrl.focus();                     // url textbox has focus
+sheetUrl.focus(); // url textbox has focus
 disableSwipe();
 
 /**
