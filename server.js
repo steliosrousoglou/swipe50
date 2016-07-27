@@ -135,12 +135,11 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
     auth,
     spreadsheetId,
   }, (err, res) => {
-    if (err) {
-      reject('error');
-      return;
+    if (err) reject();
+    else {
+      res.sheets.forEach(x => ensureHeaders(spreadsheetId, x.properties.title));
+      resolve(res);
     }
-    res.sheets.forEach(x => ensureHeaders(spreadsheetId, x.properties.title));
-    resolve(res);
   });
 });
 
@@ -153,10 +152,8 @@ const getSpreadsheetData = (spreadsheetId, range) => new Promise((resolve, rejec
     spreadsheetId,
     range,
   }, (err, res) => {
-    if (err) {
-      reject(err);
-    }
-    resolve(res);
+    if (err) reject();
+    else resolve(res);
   });
 });
 
@@ -280,7 +277,7 @@ app.post('/export', (req, res) => {
   getSpreadsheetData(req.body.spreadsheetId, req.body.sheetName)
   .then(body => processData(body))
   .then((data) => res.send(data))
-  .catch((err) => res.send(err));
+  .catch(() => res.send('fail'));
 });
 
 app.listen(3000);
