@@ -1,15 +1,12 @@
+// dependencies
 const express = require('express');
 const request = require('request');
 const app = express();
 const bodyParser = require('body-parser');
-const creds = require('./client_secret.json');
-const token = require('./token.json');
 const google = require('googleapis');
 const GoogleAuth = require('google-auth-library');
 const sheets = google.sheets('v4');
 const fs = require('fs');
-// set default time-zone for timestamps
-process.env.TZ = 'America/New_York';
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -17,14 +14,18 @@ app.use(bodyParser.urlencoded({
 }));
 
 // create and store credentials
+const creds = require('./client_secret.json');
+const token = require('./token.json');
 const clientSecret = creds.installed.client_secret;
 const clientId = creds.installed.client_id;
 const redirectUrl = creds.installed.redirect_uris[0];
 const authorization = new GoogleAuth();
 const oauth2Client = new authorization.OAuth2(clientId, clientSecret, redirectUrl);
-
 oauth2Client.credentials = token;
 const auth = oauth2Client;
+
+// set default time-zone for timestamps
+process.env.TZ = 'America/New_York';
 
 /*
  * Returns ValueRange object required by spreadsheets.values.update
@@ -81,7 +82,7 @@ const isWriteable = (spreadsheetId, sheetId) => new Promise((resolve, reject) =>
     },
   }, (err, res) => {
     if (err) reject();
-    resolve(res);
+    else resolve(res);
   });
 });
 
@@ -103,7 +104,10 @@ const getStudent = netid => new Promise((resolve, reject) => {
   request.post({
     url: `https://gw-tst.its.yale.edu/soa-gateway/cs50?netid=${netid}&type=json`,
   }, (error, response, body) => {
-    if (error) reject();
+    if (error) {
+      reject();
+      return;
+    }
     // Format the object returned from school
     let student;
     try {
@@ -131,7 +135,10 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
     auth,
     spreadsheetId,
   }, (err, res) => {
-    if (err) reject('error');
+    if (err) {
+      reject('error');
+      return;
+    }
     res.sheets.forEach(x => ensureHeaders(spreadsheetId, x.properties.title));
     resolve(res);
   });
