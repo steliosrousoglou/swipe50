@@ -189,8 +189,9 @@ submitButton.addEventListener('click', () => {
   // hide drop-down, disable swipe at attempt to change spreadsheet
   dropDown.style.visibility = 'hidden';
   disableSwipe();
+  // if url is valid, try writing to spreadsheet
   if (validateUrl(sheetUrl.value)) {
-    isWriteable('spreadsheet'); // try writing to the first sheet
+    isWriteable('spreadsheet');
   } else {
     sheetUrl.value = '';
     alert('Please enter valid url');

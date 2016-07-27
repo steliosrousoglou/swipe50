@@ -195,7 +195,12 @@ app.post('/swipe', (req, res) => {
       },
     }, (err) => {
       if (err) res.send('fail');
-      else res.send(values);
+      else {
+        // if (values[4].userEnteredValue.stringValue === 'stylianos.rousoglou@yale.edu') {
+        //   // SEND EMAIL
+        // }
+        res.send(values);
+      }
     });
   }).catch(() => res.send('fail'));
 });
@@ -251,6 +256,7 @@ const processData = data => {
 
   console.log(response);
 
+  // everyone's emails
   const emails = students.map(x => x[4]);
 
   return response;
