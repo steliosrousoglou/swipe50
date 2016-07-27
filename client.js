@@ -31,25 +31,24 @@ sheetUrl.value = localStorage.getItem('lastUrl'); // last session url
 sheetUrl.focus(); // url textbox has focus
 disableSwipe();
 
-/**
+/*
  * Determines whether url contains valid spreadsheet ID
  * If it does, sets global spreadsheetId and sheetId (0 by default)
  */
 const validateUrl = (url) => {
   const match = /spreadsheets\/d\/(.*)\//;
   const result = url.match(match);
-  // if ID empty, spreadsheet url invalid
+  // if no match, spreadsheet url invalid
   if (!result) return false;
-  const ID = result[1];
+  // make the info available globally to client
+  spreadsheetId = result[1]; // set global spreadsheetId
+  sheetId = 0;  // global initial sheetId = 0 by default
   // store current session url in browser
   localStorage.setItem('lastUrl', url);
-  // make the info available globally to client
-  spreadsheetId = ID; // set global spreadsheetId
-  sheetId = 0;  // global initial sheetId = 0 by default
   return true;
 };
 
-/**
+/*
  * Renders drop-down menu for user to
  * select sheet within the spreadsheet
  */
@@ -63,7 +62,34 @@ const renderDropdown = sheets => {
   dropDown.style.visibility = 'visible';
 };
 
-/**
+/*
+ * Makes get request to server, notifying the
+ * user if the spreadsheet is not writeable.
+ * If it is, enables swipe textbox
+ */
+const isWriteable = () => {
+  const body = {
+    spreadsheetId,
+    sheetId,
+  };
+
+  fetch(`${host}/writeable`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then(res => res.text())
+  .then(res => {
+    if (res === 'fail') alert(`Warning: ${sheetName} is not writeable!`);
+    else enableSwipe();
+  })
+  .catch(err => {
+    alert(`Cannot connect to server: ${err}`);
+  });
+};
+
+/*
  * Batch get request to obtain spreadsheet title
  * and array of available sheets (to render dropdown)
  */
@@ -80,7 +106,7 @@ const getSpreadsheetInfo = () => {
     body: JSON.stringify(body),
   }).then(res => res.text())
   .then(res => {
-    if (res === 'fail') alert('Spreadsheet info not retrievable');
+    if (res === 'fail') alert('Could not find spreadsheet.');
     else {
       const response = JSON.parse(res);
       const spreadsheetName = response.properties.title;
@@ -90,48 +116,14 @@ const getSpreadsheetInfo = () => {
       sheetUrl.value = `Writing to: ${spreadsheetName}`;
       // Store name of default sheet (sheetId == 0)
       sheetName = response.sheets[0].properties.title;
+      sheetId = 0;
+      isWriteable();
     }
   })
   .catch(err => console.log(`Cannot get sheet information: ${err}`));
 };
 
-/**
- * Makes get request to server, notifying the
- * user if the spreadsheet is not writeable.
- * If it is, enables swipe textbox
- */
-const isWriteable = (type) => {
-  const body = {
-    spreadsheetId,
-    sheetId,
-  };
-
-  fetch(`${host}/writeable`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  }).then(res => res.text())
-  .then(res => {
-    if (res === 'fail') {
-      // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
-      if (type === 'sheet') alert(`Warning: ${sheetName} is not writeable!`);
-      else alert('Spreadsheet not writeable (ensure first sheet is writeable)');
-    } else {
-      // get spreadsheet info when first writing to it
-      if (type === 'spreadsheet') getSpreadsheetInfo();
-      else sheetName = dropDown.options[dropDown.selectedIndex].text;
-      // enable swipe and export
-      enableSwipe();
-    }
-  })
-  .catch(err => {
-    alert(`Cannot connect to server: ${err}`);
-  });
-};
-
-/**
+/*
  * Makes post request to server with entered information
  */
 const swipeIn = netid => {
@@ -152,13 +144,16 @@ const swipeIn = netid => {
   }).then(res => res.text()
   ).then(res => {
     if (res === 'fail') alert('Could not update student');
-    else console.log('Updated sheet');
   })
   .catch(err => {
-    console.log('Failed to swipe in: ', err);
+    alert(`Failed to swipe in: ${err}`);
   });
 };
 
+/*
+ * Requests all data from selected sheet and provides
+ * useful information and stats
+ */
 const exportData = () => {
   const body = {
     spreadsheetId,
@@ -181,7 +176,7 @@ const exportData = () => {
   });
 };
 
-/**
+/*
  * Event listener for url submission.
  * Upon submission, validates url
  */
@@ -191,14 +186,14 @@ submitButton.addEventListener('click', () => {
   disableSwipe();
   // if url is valid, try writing to spreadsheet
   if (validateUrl(sheetUrl.value)) {
-    isWriteable('spreadsheet');
+    getSpreadsheetInfo();
   } else {
     sheetUrl.value = '';
     alert('Please enter valid url');
   }
 });
 
-/**
+/*
  * Event listener for swiping, triggered by <return>
  * Attempts to swipe in person, then clears the textbox
  */
@@ -209,16 +204,19 @@ swipeReader.addEventListener('keyup', e => {
   }
 });
 
-/**
+/*
  * Event listener for drop-down sheet selector
  */
 dropDown.addEventListener('change', e => {
   disableSwipe();
   sheetId = e.target.value;
   sheetName = dropDown.options[dropDown.selectedIndex].text;
-  isWriteable('sheet');
+  isWriteable();
 });
 
+/*
+ * Event listener for export button
+ */
 exportButton.addEventListener('click', () => {
   exportData();
 });
