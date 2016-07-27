@@ -7,6 +7,7 @@ const token = require('./token.json');
 const google = require('googleapis');
 const GoogleAuth = require('google-auth-library');
 const sheets = google.sheets('v4');
+const fs = require('fs');
 
 process.env.TZ = 'America/New_York';
 
@@ -97,7 +98,7 @@ const studentRow = (netid, firstName, lastName, email) => [
 /*
  * Makes post request to Yale API and fetches student info
  */
-const getStudent = (netid) => new Promise((resolve, reject) => {
+const getStudent = netid => new Promise((resolve, reject) => {
   request.post({
     url: `https://gw-tst.its.yale.edu/soa-gateway/cs50?netid=${netid}&type=json`,
   }, (error, response, body) => {
@@ -124,7 +125,7 @@ const getStudent = (netid) => new Promise((resolve, reject) => {
  * Fetches information about the spreadsheet and initializes
  * the first row of every sheet to the standard headers
  */
-const getSpreadsheet = (spreadsheetId) => new Promise((resolve, reject) => {
+const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
   sheets.spreadsheets.get({
     auth: authorization,
     spreadsheetId,
@@ -199,13 +200,71 @@ app.post('/swipe', (req, res) => {
   }).catch(() => res.send('fail'));
 });
 
+const processData = data => {
+  // remove headers from data
+  data.values.shift();
+  const students = data.values;
+  // require staff netids file
+  const staffFile = fs.readFileSync('./staff.txt', 'utf8');
+  // staff netids in array 'staff', remove empty lines
+  const staff = staffFile.split('\n').filter(s => s !== '');
+  // to hold students and staff
+  const studentsAttending = [];
+  const staffAttending = [];
+  // regex to match time
+  const getTime = /..:..:../;
+  const separator = '\n------------------------------------------\n';
+
+  let response = '';
+
+  // const netids = students.map(x => x[0]);
+  students.forEach(id => {
+    const time = id[1].match(getTime);
+    const checkIn = time[0];
+    if (staff.indexOf(id[0]) !== -1) staffAttending.push([id[0], checkIn, id[2], id[3]]);
+    else studentsAttending.push([id[0], checkIn, id[2], id[3]]);
+  });
+
+  // store all late staff
+  const lateStaff = staffAttending.filter(s => s[1] > '14:00:00');
+  const ontimeStaff = staffAttending.filter(s => s[1] <= '14:00:00');
+  response = response.concat(separator);
+  response = response.concat('\nSTAFF INFO\n');
+  response = response.concat(`# staff: ${staffAttending.length}\n`);
+  response = response.concat(`# late: ${lateStaff.length}\n`);
+  response = response.concat(`# on-time: ${ontimeStaff.length} \n`);
+  response = response.concat('\nLate: \n');
+  lateStaff.forEach(x => {
+    response = response.concat(`${x[2]} ${x[3]}\n`);
+  });
+  response = response.concat('\nOn Time: \n');
+  ontimeStaff.forEach(x => {
+    response = response.concat(`${x[2]} ${x[3]}\n`);
+  });
+  response = response.concat(separator);
+  response = response.concat('\nSTUDENT INFO\n\n');
+  response = response.concat(`# students: ${studentsAttending.length}\n`);
+  studentsAttending.forEach(x => {
+    response = response.concat(`${x[2]} ${x[3]}\n`);
+  });
+  response = response.concat(separator);
+
+  console.log(response);
+
+  const emails = students.map(x => x[4]);
+
+  return response;
+};
+
 /*
  * Endpoint to send all cell data available on specified sheet
  * for purposes of analyzing attendance
+ * TODO: post request should ONLY happen if logged in with heads credentials
  */
 app.post('/export', (req, res) => {
   getSpreadsheetData(req.body.spreadsheetId, req.body.sheetName)
-  .then(body => res.send(body))
+  .then(body => processData(body))
+  .then((data) => res.send(data))
   .catch((err) => res.send(err));
 });
 

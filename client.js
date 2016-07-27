@@ -11,36 +11,41 @@ const dropDown = document.querySelector('.drop');
 // button for exporting data
 const exportButton = document.querySelector('.export-button');
 
-
-let spreadsheetId = localStorage.getItem('lastSpreadsheetId');
-let spreadsheetName;
+let spreadsheetId;
 let sheetId;
 let sheetName;
 
+const enableSwipe = () => {
+  swipeReader.disabled = false;
+  swipeReader.focus();
+  exportButton.disabled = false;
+};
+
+const disableSwipe = () => {
+  swipeReader.disabled = true;
+  exportButton.disabled = true;
+};
+
 dropDown.style.visibility = 'hidden'; // hide dropdown initially
-swipeReader.disabled = true;  // initially, swipe textbox disabled
-exportButton.disabled = true; // initially, export button disabled
 sheetUrl.value = localStorage.getItem('lastUrl'); // last session url
-sheetUrl.focus(); // initially url textbox has focus
+sheetUrl.focus();                     // url textbox has focus
+disableSwipe();
 
 /**
  * Determines whether url contains valid spreadsheet ID
  * If it does, sets global spreadsheetId and sheetId (0 by default)
  */
 const validateUrl = (url) => {
-  const head = /spreadsheets\/d\//;
-  const beg = url.search(head);
-  // If no match, spreadsheetID will remain empty
-  const firstHalf = (beg === -1) ? '' : url.substring(beg).substring(15);
-  const tail = firstHalf.indexOf('/');
-  const ID = (tail === -1) ? firstHalf : firstHalf.substring(0, tail);
-  if (ID === '') return false;
-  // store current session info
-  localStorage.setItem('lastSpreadsheetId', ID);
+  const match = /spreadsheets\/d\/(.*)\//;
+  const result = url.match(match);
+  // if ID empty, spreadsheet url invalid
+  if (!result) return false;
+  const ID = result[1];
+  // store current session url in browser
   localStorage.setItem('lastUrl', url);
   // make the info available globally to client
-  spreadsheetId = ID;
-  sheetId = 0; // first sheet is default
+  spreadsheetId = ID; // set global spreadsheetId
+  sheetId = 0;  // global initial sheetId = 0 by default
   return true;
 };
 
@@ -48,14 +53,15 @@ const validateUrl = (url) => {
  * Renders drop-down menu for user to
  * select sheet within the spreadsheet
  */
-function renderDropdown(sheets) {
+const renderDropdown = sheets => {
+  // empty drop-down
   dropDown.innerHTML = '';
   sheets.forEach((sheet, i) => {
     dropDown.options[i] =
       new Option(sheet.properties.title, sheet.properties.sheetId);
   });
   dropDown.style.visibility = 'visible';
-}
+};
 
 /**
  * Batch get request to obtain spreadsheet title
@@ -77,12 +83,13 @@ const getSpreadsheetInfo = () => {
     if (res === 'fail') alert('Spreadsheet info not retrievable');
     else {
       const response = JSON.parse(res);
-      spreadsheetName = response.properties.title;
-      sheetName = response.sheets[0].properties.title;
-      sheetUrl.value = `Writing to: ${spreadsheetName}`;
+      const spreadsheetName = response.properties.title;
+      // Render sheet drop-down menu
       renderDropdown(response.sheets);
-      swipeReader.disabled = false;
-      swipeReader.focus();
+      // Write title in the url box
+      sheetUrl.value = `Writing to: ${spreadsheetName}`;
+      // Store name of default sheet (sheetId == 0)
+      sheetName = response.sheets[0].properties.title;
     }
   })
   .catch(err => console.log(`Cannot get sheet information: ${err}`));
@@ -109,25 +116,14 @@ const isWriteable = (type) => {
   .then(res => {
     if (res === 'fail') {
       // FOR APP TO WORK, FIRST SHEET *MUST* BE WRITEABLE
-      if (type === 'sheet') {
-        dropDown.selectedIndex = 0;
-        sheetId = dropDown.options[0].value;
-        sheetName = dropDown.options[0].text;
-        alert(`Sheet not writeable, switching to ${sheetName}`);
-        swipeReader.focus();
-        exportButton.disabled = false;
-      }
-      else alert('Spreadsheet not writeable (make sure the first sheet is writeable)');
-      // in fail case, if we were changing sheet, revert global heet name and sheetId
-      // to local storage 'firstSheet', revert dropdown to first sheet
+      if (type === 'sheet') alert(`Warning: ${sheetName} is not writeable!`);
+      else alert('Spreadsheet not writeable (ensure first sheet is writeable)');
     } else {
-      exportButton.disabled = false;
-      localStorage.setItem('lastSpreadsheetId', spreadsheetId);
+      // get spreadsheet info when first writing to it
       if (type === 'spreadsheet') getSpreadsheetInfo();
-      else {
-        sheetName = dropDown.options[dropDown.selectedIndex].text;
-        swipeReader.focus();
-      }
+      else sheetName = dropDown.options[dropDown.selectedIndex].text;
+      // enable swipe and export
+      enableSwipe();
     }
   })
   .catch(err => {
@@ -175,13 +171,9 @@ const exportData = () => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-  }).then(res => res.json())
-  .then(json => {
-    json.values[0] = [];
-    // Iterate over row entries
-    // json.values.forEach((entry, i) => {
-    //   if (entry.length !== 0) console.log(entry, i);
-    // });
+  }).then(res => res.text())
+  .then(text => {
+    console.log(text);
   })
   .catch(err => {
     console.log(`Error exporting sheet ${sheetName}: ${err}`);
@@ -194,10 +186,14 @@ const exportData = () => {
  * Upon submission, validates url
  */
 submitButton.addEventListener('click', () => {
+  // hide drop-down, disable swipe at attempt to change spreadsheet
   dropDown.style.visibility = 'hidden';
-  swipeReader.disabled = true;
+  disableSwipe();
   if (validateUrl(sheetUrl.value)) {
     isWriteable('spreadsheet'); // try writing to the first sheet
+  } else {
+    sheetUrl.value = '';
+    alert('Please enter valid url');
   }
 });
 
@@ -216,6 +212,7 @@ swipeReader.addEventListener('keyup', e => {
  * Event listener for drop-down sheet selector
  */
 dropDown.addEventListener('change', e => {
+  disableSwipe();
   sheetId = e.target.value;
   sheetName = dropDown.options[dropDown.selectedIndex].text;
   isWriteable('sheet');
