@@ -28,11 +28,11 @@ const auth = oauth2Client;
 
 // Credentials and template for swipe-in email
 const emailCreds = fs.readFileSync('./emailCreds.txt', 'utf8');
-const emailTemp = fs.readFileSync('./emailTemp.txt', 'utf8');
+const emailTemp = fs.readFileSync('./templates/emailTemp.txt', 'utf8');
 const bodyTemp = _.template(emailTemp);
 
 // Template for export data
-const exportTemp = fs.readFileSync('./exportTemp.txt', 'utf8');
+const exportTemp = fs.readFileSync('./templates/exportTemp.txt', 'utf8');
 const dataTemp = _.template(exportTemp);
 
 // set default time-zone for timestamps
