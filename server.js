@@ -1,13 +1,15 @@
 // dependencies
-const express = require('express');
-const request = require('request');
-const app = express();
 const bodyParser = require('body-parser');
+const express = require('express');
+const fs = require('fs');
 const google = require('googleapis');
 const GoogleAuth = require('google-auth-library');
+const _ = require('lodash');
+const nodemailer = require('nodemailer');
+const request = require('request');
 const sheets = google.sheets('v4');
-const fs = require('fs');
 
+const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true,
@@ -23,6 +25,15 @@ const authorization = new GoogleAuth();
 const oauth2Client = new authorization.OAuth2(clientId, clientSecret, redirectUrl);
 oauth2Client.credentials = token;
 const auth = oauth2Client;
+
+// Credentials and template for swipe-in email
+const emailCreds = fs.readFileSync('./emailCreds.txt', 'utf8');
+const emailTemp = fs.readFileSync('./emailTemp.txt', 'utf8');
+const bodyTemp = _.template(emailTemp);
+
+// Template for export data
+const exportTemp = fs.readFileSync('./exportTemp.txt', 'utf8');
+const dataTemp = _.template(exportTemp);
 
 // set default time-zone for timestamps
 process.env.TZ = 'America/New_York';
@@ -158,6 +169,35 @@ const getSpreadsheetData = (spreadsheetId, range) => new Promise((resolve, rejec
 });
 
 /*
+ * Sample email function for testing purposes,
+ * send confirmation of attendance email upon swipe-in
+ */
+const emailStudent = (email, timestamp, name) => {
+  const transporter = nodemailer.createTransport(emailCreds);
+
+  // setup e-mail data with unicode symbols
+  const mailOptions = {
+    from: '<strousoglou@gmail.com>', // sender address
+    to: email, // list of receivers
+    subject: 'Welcome to CS50 Office Hours', // Subject line
+    // text: 'Hello world 🐴', // plaintext body
+    html: bodyTemp({
+      timestamp,
+      name,
+    }),
+  };
+
+  // send mail with defined transport object
+  transporter.sendMail(mailOptions, (err, info) => {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    console.log('Message sent: ' + info.response);
+  });
+};
+
+/*
  * Endpoint to determine if specified sheet is writeable, responds
  * with keyword 'fail' if it is not.
  */
@@ -201,9 +241,11 @@ app.post('/swipe', (req, res) => {
     }, (err) => {
       if (err) res.send('fail');
       else {
-        // if (values[4].userEnteredValue.stringValue === 'stylianos.rousoglou@yale.edu') {
-        //   // SEND EMAIL
-        // }
+        if (values[4].userEnteredValue.stringValue === 'stylianos.rousoglou@yale.edu') {
+          emailStudent(values[4].userEnteredValue.stringValue,
+            values[1].userEnteredValue.stringValue,
+            values[2].userEnteredValue.stringValue);
+        }
         res.send(values);
       }
     });
@@ -211,6 +253,8 @@ app.post('/swipe', (req, res) => {
 });
 
 const processData = data => {
+  // TODO: figure it out somehow, maybe as parameter?
+  const startTime = '14:00:00';
   // remove headers from data
   data.values.shift();
   const students = data.values;
@@ -218,54 +262,43 @@ const processData = data => {
   const staffFile = fs.readFileSync('./staff.txt', 'utf8');
   // staff netids in array 'staff', remove empty lines
   const staff = staffFile.split('\n').filter(s => s !== '');
-  // to hold students and staff
-  const studentsAttending = [];
-  const staffAttending = [];
   // regex to match time
   const getTime = /..:..:../;
-  const separator = '\n------------------------------------------\n';
 
-  let response = '';
+  // staff
+  const late = [];
+  const rest = [];
+  // students
+  const allStudents = [];
+  const emails = [];
 
-  // const netids = students.map(x => x[0]);
   students.forEach(id => {
+    // extract time
     const time = id[1].match(getTime);
     const checkIn = time[0];
-    if (staff.indexOf(id[0]) !== -1) staffAttending.push([id[0], checkIn, id[2], id[3]]);
-    else studentsAttending.push([id[0], checkIn, id[2], id[3], id[4]]);
+    if (staff.indexOf(id[0]) !== -1) {
+      // staff
+      if (checkIn > startTime) {
+        late.push(`${checkIn}  ${id[2]} ${id[3]}`);
+      } else {
+        rest.push(`${checkIn}  ${id[2]} ${id[3]}`);
+      }
+    } else {
+      // students
+      allStudents.push(`${checkIn}  ${id[2]} ${id[3]}`);
+      if (id[4]) emails.push(id[4]);
+    }
   });
 
-  // store all late staff
-  const lateStaff = staffAttending.filter(s => s[1] > '14:00:00');
-  const ontimeStaff = staffAttending.filter(s => s[1] <= '14:00:00');
-  response += separator;
-  response += '\nSTAFF INFO\n';
-  response += `# staff: ${staffAttending.length}\n`;
-  response += `# late: ${lateStaff.length}\n`;
-  response += `# on-time: ${ontimeStaff.length} \n`;
-  response += '\nLate: \n';
-  lateStaff.forEach(x => {
-    response += `${x[1]}: ${x[2]} ${x[3]}\n`;
+  return dataTemp({
+    staff_num: late.length + rest.length,
+    late_staff_num: late.length,
+    list_late_staff: late.join('\n'),
+    rest_of_staff: rest.join('\n'),
+    student_num: allStudents.length,
+    list_students: allStudents.join('\n'),
+    student_emails: emails.join('\n'),
   });
-  response += '\nOn Time: \n';
-  ontimeStaff.forEach(x => {
-    response += `${x[1]}: ${x[2]} ${x[3]}\n`;
-  });
-  response += separator;
-  response += '\nSTUDENT INFO\n\n';
-  response += `# students: ${studentsAttending.length}\n`;
-  studentsAttending.forEach(x => {
-    response += `${x[2]} ${x[3]}\n`;
-  });
-  response += separator;
-  response += '\nSTUDENT EMAILS\n\n';
-
-  // add students' emails to response
-  studentsAttending.map(x => x[4]).forEach(x => {
-    if (x) response += `${x}\n`;
-  });
-
-  return response;
 };
 
 /*
