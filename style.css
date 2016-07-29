@@ -14,9 +14,7 @@ body {
     margin : auto;
     width: 200px;
   }
-  /*#export {
-    margin : auto;
-    width: 200px;
-    padding: 1rem;
-    text-align: center;
-  }*/
+  textarea {
+    width: 300px;
+    height: 150px;
+  }

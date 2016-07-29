@@ -10,26 +10,38 @@ const swipeReader = document.querySelector('.swipe-reader');
 const dropDown = document.querySelector('.drop');
 // button for exporting data
 const exportButton = document.querySelector('.export-button');
+// rich text area from swipe-in email customization and button
+const emailTextField = document.querySelector('textarea');
+const emailButton = document.querySelector('.text-area-button');
+const emailDefault = document.querySelector('.email-default');
+const emailSave = document.querySelector('.email-save');
+const emailCancel = document.querySelector('.email-cancel');
+const emailClose = document.querySelector('.email-close');
 
 let spreadsheetId;
 let sheetId;
 let sheetName;
 
-const enableSwipe = () => {
-  swipeReader.disabled = false;
-  swipeReader.focus();
-  exportButton.disabled = false;
+const hideSwipe = (hide) => {
+  swipeReader.disabled = hide;
+  exportButton.disabled = hide;
+  if (!hide) swipeReader.focus();
 };
 
-const disableSwipe = () => {
-  swipeReader.disabled = true;
-  exportButton.disabled = true;
+const getDefaultEmail = () => {
+  fetch(`${host}/defaultEmail`, { method: 'GET' })
+  .then(res => res.text())
+  .then(text => {
+    emailTextField.value = text;
+  })
+  .catch(() => {});
 };
 
 dropDown.style.visibility = 'hidden';
 sheetUrl.value = localStorage.getItem('lastUrl'); // last session url
 sheetUrl.focus(); // url textbox has focus
-disableSwipe();
+emailTextField.style.visibility = 'hidden';
+hideSwipe(true);
 
 /*
  * Determines whether url contains valid spreadsheet ID
@@ -82,7 +94,7 @@ const isWriteable = () => {
   }).then(res => res.text())
   .then(res => {
     if (res === 'fail') alert(`Warning: ${sheetName} is not writeable!`);
-    else enableSwipe();
+    else hideSwipe(false);
   })
   .catch(err => {
     alert(`Cannot connect to server: ${err}`);
@@ -134,6 +146,7 @@ const swipeIn = netid => {
     netid,
     spreadsheetId,
     sheetId,
+    message: emailTextField.value,
   };
   fetch(`${host}/swipe`, {
     method: 'POST',
@@ -183,7 +196,7 @@ const exportData = () => {
 submitButton.addEventListener('click', () => {
   // hide drop-down, disable swipe at attempt to change spreadsheet
   dropDown.style.visibility = 'hidden';
-  disableSwipe();
+  hideSwipe(true);
   // if url is valid, try writing to spreadsheet
   if (validateUrl(sheetUrl.value)) {
     getSpreadsheetInfo();
@@ -208,7 +221,7 @@ swipeReader.addEventListener('keyup', e => {
  * Event listener for drop-down sheet selector
  */
 dropDown.addEventListener('change', e => {
-  disableSwipe();
+  hideSwipe(true);
   sheetId = e.target.value;
   sheetName = dropDown.options[dropDown.selectedIndex].text;
   isWriteable();
@@ -219,4 +232,30 @@ dropDown.addEventListener('change', e => {
  */
 exportButton.addEventListener('click', () => {
   exportData();
+});
+
+/*
+ * Event listener for edit email text-area
+ */
+emailButton.addEventListener('click', () => {
+  if (emailTextField.style.visibility === 'hidden') {
+    emailTextField.style.visibility = 'visible';
+  } else emailTextField.style.visibility = 'hidden';
+  if (emailTextField.value === '') {
+    emailTextField.value = localStorage.getItem('emailText');
+  } });
+
+/*
+ * Event listener for get default email text
+ */
+emailDefault.addEventListener('click', () => {
+  getDefaultEmail();
+});
+
+emailSave.addEventListener('click', () => {
+  localStorage.setItem('emailText', emailTextField.value);
+});
+
+emailCancel.addEventListener('click', () => {
+  emailTextField.value = localStorage.getItem('emailText');
 });

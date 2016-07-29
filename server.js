@@ -11,13 +11,14 @@ const sheets = google.sheets('v4');
 
 const app = express();
 app.use(bodyParser.json());
+app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({
   extended: true,
 }));
 
 // create and store credentials
-const creds = require('./client_secret.json');
-const token = require('./token.json');
+const creds = require('./client_secret.json');  // TODO: change
+const token = require('./token.json');          // TODO: change
 const clientSecret = creds.installed.client_secret;
 const clientId = creds.installed.client_id;
 const redirectUrl = creds.installed.redirect_uris[0];
@@ -27,13 +28,8 @@ oauth2Client.credentials = token;
 const auth = oauth2Client;
 
 // Credentials and template for swipe-in email
-const emailCreds = fs.readFileSync('./emailCreds.txt', 'utf8');
+const emailCreds = fs.readFileSync('./emailCreds.txt', 'utf8'); // TODO: change
 const emailTemp = fs.readFileSync('./templates/emailTemp.txt', 'utf8');
-const bodyTemp = _.template(emailTemp);
-
-// Template for export data
-const exportTemp = fs.readFileSync('./templates/exportTemp.txt', 'utf8');
-const dataTemp = _.template(exportTemp);
 
 // set default time-zone for timestamps
 process.env.TZ = 'America/New_York';
@@ -41,14 +37,14 @@ process.env.TZ = 'America/New_York';
 /*
  * Returns ValueRange object required by spreadsheets.values.update
  */
-const getValueRange = (range, values, spreadsheetId) => ({
+const getValueRange = (range, values, spreadsheetId, md) => ({
   auth,
   spreadsheetId,
   range,
   valueInputOption: 'USER_ENTERED',
   resource: {
     values,
-    major_dimension: 'ROWS',
+    major_dimension: md,
   },
 });
 
@@ -59,7 +55,20 @@ const ensureHeaders = (spreadsheetId, sheetTitle) => {
   sheets.spreadsheets.values.update(getValueRange(
     `${sheetTitle}!A1:E1`,
     [['netID', 'Timestamp', 'First Name', 'Last Name', 'email']],
-    spreadsheetId
+    spreadsheetId, 'ROWS'
+  ), () => {});
+};
+
+/*
+ * Writes summary data to the sheet; # of students and staff,
+ * time of staff members' arrival
+ */
+const writeExport = (data, spreadsheetId, sheetTitle) => {
+  const headers = [['# Students:', data[1]], ['# Staff:', data[0].length]];
+  sheets.spreadsheets.values.update(getValueRange(
+    `${sheetTitle}!G:H`,
+    headers.concat(data[0]),
+    spreadsheetId, 'ROWS'
     ), () => {});
 };
 
@@ -148,7 +157,9 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
   }, (err, res) => {
     if (err) reject();
     else {
-      res.sheets.forEach(x => ensureHeaders(spreadsheetId, x.properties.title));
+      res.sheets.forEach(x => {
+        if (x) ensureHeaders(spreadsheetId, x.properties.title);
+      });
       resolve(res);
     }
   });
@@ -157,11 +168,11 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
 /*
  * Fetches all cell data from specified sheet, for exporting
  */
-const getSpreadsheetData = (spreadsheetId, range) => new Promise((resolve, reject) => {
+const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, reject) => {
   sheets.spreadsheets.values.get({
     auth,
     spreadsheetId,
-    range,
+    range: `${sheetName}!A:E`,
   }, (err, res) => {
     if (err) reject();
     else resolve(res);
@@ -172,9 +183,9 @@ const getSpreadsheetData = (spreadsheetId, range) => new Promise((resolve, rejec
  * Sample email function for testing purposes,
  * send confirmation of attendance email upon swipe-in
  */
-const emailStudent = (email, timestamp, name) => {
+const emailStudent = (email, timestamp, name, message) => {
   const transporter = nodemailer.createTransport(emailCreds);
-
+  const bodyTemp = _.template(message);
   // setup e-mail data with unicode symbols
   const mailOptions = {
     from: '<strousoglou@gmail.com>', // sender address
@@ -240,11 +251,11 @@ app.post('/swipe', (req, res) => {
       },
     }, (err) => {
       if (err) res.send('fail');
-      else {
+      else { // TODO: fix this, just precaution for now
         if (values[4].userEnteredValue.stringValue === 'stylianos.rousoglou@yale.edu') {
           emailStudent(values[4].userEnteredValue.stringValue,
             values[1].userEnteredValue.stringValue,
-            values[2].userEnteredValue.stringValue);
+            values[2].userEnteredValue.stringValue, req.body.message);
         }
         res.send(values);
       }
@@ -253,11 +264,9 @@ app.post('/swipe', (req, res) => {
 });
 
 const processData = data => {
-  // TODO: figure it out somehow, maybe as parameter?
-  const startTime = '14:00:00';
-  // remove headers from data
+  // remove headers and empty lines from data
   data.values.shift();
-  const students = data.values;
+  const students = data.values.filter(x => x.length > 0);
   // require staff netids file
   const staffFile = fs.readFileSync('./staff.txt', 'utf8');
   // staff netids in array 'staff', remove empty lines
@@ -265,40 +274,30 @@ const processData = data => {
   // regex to match time
   const getTime = /..:..:../;
 
-  // staff
-  const late = [];
-  const rest = [];
-  // students
   const allStudents = [];
-  const emails = [];
+  const allStaff = [];
 
   students.forEach(id => {
-    // extract time
+    // extract time from timestamp
     const time = id[1].match(getTime);
     const checkIn = time[0];
     if (staff.indexOf(id[0]) !== -1) {
       // staff
-      if (checkIn > startTime) {
-        late.push(`${checkIn}  ${id[2]} ${id[3]}`);
-      } else {
-        rest.push(`${checkIn}  ${id[2]} ${id[3]}`);
-      }
+      allStaff.push([checkIn, `${id[2]} ${id[3]}`]);
     } else {
       // students
       allStudents.push(`${checkIn}  ${id[2]} ${id[3]}`);
-      if (id[4]) emails.push(id[4]);
     }
   });
 
-  return dataTemp({
-    staff_num: late.length + rest.length,
-    late_staff_num: late.length,
-    list_late_staff: late.join('\n'),
-    rest_of_staff: rest.join('\n'),
-    student_num: allStudents.length,
-    list_students: allStudents.join('\n'),
-    student_emails: emails.join('\n'),
+  // Staff sorted by lateness
+  const sortedStaff = allStaff.sort((a, b) => {
+    if (a[0] < b[0]) return 1;
+    if (a[0] > b[0]) return -1;
+    return 0;
   });
+
+  return [sortedStaff, allStudents.length];
 };
 
 /*
@@ -309,8 +308,14 @@ const processData = data => {
 app.post('/export', (req, res) => {
   getSpreadsheetData(req.body.spreadsheetId, req.body.sheetName)
   .then(body => processData(body))
-  .then((data) => res.send(data))
+  .then((data) => writeExport(data, req.body.spreadsheetId, req.body.sheetName))
+  .then(() => res.send())
   .catch(() => res.send('fail'));
 });
+
+app.get('/defaultEmail', (req, res) => {
+  res.send(emailTemp);
+});
+
 
 app.listen(3000);
