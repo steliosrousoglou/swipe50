@@ -12,5 +12,5 @@
 
 
 #Notes:
-The spreadsheet must exist
+The spreadsheet must exist<br>
 The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it *must* be writeable only by our service account)<br>
