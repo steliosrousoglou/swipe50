@@ -122,11 +122,11 @@ const getSpreadsheetInfo = () => {
     else {
       const response = JSON.parse(res);
       const spreadsheetName = response.properties.title;
-      // Render sheet drop-down menu
+      // render sheet drop-down menu
       renderDropdown(response.sheets);
-      // Write title in the url box
+      // write title in the url box
       sheetUrl.value = `Writing to: ${spreadsheetName}`;
-      // Store name of default sheet (sheetId == 0)
+      // store name of default sheet (sheetId == 0)
       sheetName = response.sheets[0].properties.title;
       sheetId = 0;
       isWriteable();
@@ -238,6 +238,7 @@ exportButton.addEventListener('click', () => {
  * Event listener for edit email text-area
  */
 emailButton.addEventListener('click', () => {
+  // toggle email text area
   if (emailTextField.style.visibility === 'hidden') {
     emailTextField.style.visibility = 'visible';
   } else emailTextField.style.visibility = 'hidden';
@@ -252,10 +253,16 @@ emailDefault.addEventListener('click', () => {
   getDefaultEmail();
 });
 
+/*
+ * Event listener storing the drafted email in local storage
+ */
 emailSave.addEventListener('click', () => {
   localStorage.setItem('emailText', emailTextField.value);
 });
 
+/*
+ * Event listener for reverting email to last saved state
+ */
 emailCancel.addEventListener('click', () => {
   emailTextField.value = localStorage.getItem('emailText');
 });

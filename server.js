@@ -29,7 +29,7 @@ const auth = oauth2Client;
 
 // Credentials and template for swipe-in email
 const emailCreds = fs.readFileSync('./emailCreds.txt', 'utf8'); // TODO: change
-const emailTemp = fs.readFileSync('./templates/emailTemp.txt', 'utf8');
+const emailTemp = fs.readFileSync('./emailTemp.txt', 'utf8');
 
 // set default time-zone for timestamps
 process.env.TZ = 'America/New_York';
