@@ -2,30 +2,44 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Hello World!</title>
+  <title>CS50 | Swipe</title>
   <link rel="stylesheet" type="text/css" href="style.css">
-
 </head>
 <body>
-  <div>
-    <input type="text" class="sheet-url"/>
-    <button class="submit-button">LINK</button>
-  </div>
-  <div align="center">
-    <select name="mydropdown" class="drop">
-    </select>
-  </div>
-  <div>
+  <section class="page-1">
+    <h1>Connect to Spreadsheet</h1>
+    <p>Enter a Google Spreadsheet URL into the box below and click Submit. Then select the sheet you would like swipe data to be saved to.</p>
+    <div>
+      <input type="text" class="sheet-url"/>
+      <button class="submit-button">Submit</button>
+    </div>
+    <select name="sheets" class="sheet-options"></select>
+  </section>
+
+  <section class="page-2">
+    <h1>Draft your email</h1>
+    <p>Draft email to send to people swiping into your event (in HTML), then click Save. Click Preview to preview the email, Get Default for default email template, and Cancel to revert to last stored state.</p>
+    <textarea class="text-edit" rows="20" cols="40"></textarea>
+    <article class="textarea"></article>
+    <p>Note that <%= name %> is a required placeholder for substituting swiper's name in the email</p>
+
+    <div>
+      <button class="email-preview">Preview</button>
+      <button class="email-default">Get Default</button>
+      <button class="email-save">Save</button>
+      <button class="email-cancel">Cancel</button>
+    </div>
+  </section>
+
+  <section class="page-3">
+    <h1>Swipe Student ID</h1>
+    <p class="current-spreadsheet">Not yet connected to spreadsheet</p>
     <input type="text" class="swipe-reader" />
-  </div>
-  <div>
-    <button class="export-button">EXPORT</button>
-    <button class="text-area-button">Toggle email</button>
-    <button class="email-default">Get Default</button>
-    <button class="email-save">Save</button>
-    <button class="email-cancel">Cancel</button>
-  </div>
-  <textarea class="textarea"></textarea>
+    <div>
+      <button class="export-button">Export Swipe Data</button>
+    </div>
+  </section>
+
 </body>
 <script>
 </script>

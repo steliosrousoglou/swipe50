@@ -209,6 +209,47 @@ const emailStudent = (email, timestamp, name, message) => {
 };
 
 /*
+ * Processes swipe data from specified sheet and returns
+ * number of students and sign-in times of staff
+ */
+const processData = data => {
+  // remove headers and empty lines from data
+  data.values.shift();
+  const students = data.values.filter(x => x.length > 0);
+  // require staff netids file
+  const staffFile = fs.readFileSync('./staff.txt', 'utf8');
+  // staff netids in array 'staff', remove empty lines
+  const staff = staffFile.split('\n').filter(s => s !== '');
+  // regex to match time
+  const getTime = /..:..:../;
+
+  const allStudents = [];
+  const allStaff = [];
+
+  students.forEach(id => {
+    // extract time from timestamp
+    const time = id[1].match(getTime);
+    const checkIn = time[0];
+    if (staff.indexOf(id[0]) !== -1) {
+      // staff
+      allStaff.push([checkIn, `${id[2]} ${id[3]}`]);
+    } else {
+      // students
+      allStudents.push(`${checkIn}  ${id[2]} ${id[3]}`);
+    }
+  });
+
+  // Staff sorted by lateness
+  const sortedStaff = allStaff.sort((a, b) => {
+    if (a[0] < b[0]) return 1;
+    if (a[0] > b[0]) return -1;
+    return 0;
+  });
+
+  return [sortedStaff, allStudents.length];
+};
+
+/*
  * Endpoint to determine if specified sheet is writeable, responds
  * with keyword 'fail' if it is not.
  */
@@ -259,46 +300,9 @@ app.post('/swipe', (req, res) => {
         }
         res.send(values);
       }
-    });
-  }).catch(() => res.send('fail'));
+    }); })
+  .catch(() => res.send('fail'));
 });
-
-const processData = data => {
-  // remove headers and empty lines from data
-  data.values.shift();
-  const students = data.values.filter(x => x.length > 0);
-  // require staff netids file
-  const staffFile = fs.readFileSync('./staff.txt', 'utf8');
-  // staff netids in array 'staff', remove empty lines
-  const staff = staffFile.split('\n').filter(s => s !== '');
-  // regex to match time
-  const getTime = /..:..:../;
-
-  const allStudents = [];
-  const allStaff = [];
-
-  students.forEach(id => {
-    // extract time from timestamp
-    const time = id[1].match(getTime);
-    const checkIn = time[0];
-    if (staff.indexOf(id[0]) !== -1) {
-      // staff
-      allStaff.push([checkIn, `${id[2]} ${id[3]}`]);
-    } else {
-      // students
-      allStudents.push(`${checkIn}  ${id[2]} ${id[3]}`);
-    }
-  });
-
-  // Staff sorted by lateness
-  const sortedStaff = allStaff.sort((a, b) => {
-    if (a[0] < b[0]) return 1;
-    if (a[0] > b[0]) return -1;
-    return 0;
-  });
-
-  return [sortedStaff, allStudents.length];
-};
 
 /*
  * Endpoint to send all cell data available on specified sheet
@@ -316,6 +320,5 @@ app.post('/export', (req, res) => {
 app.get('/defaultEmail', (req, res) => {
   res.send(emailTemp);
 });
-
 
 app.listen(3000);
