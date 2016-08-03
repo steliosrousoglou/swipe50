@@ -16,7 +16,7 @@ The spreadsheet must exist<br>
 The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it *must* be writeable only by our service account)<br>
 
 <h1>About Swipe50</h1>
-    <h2>What it is</h2>
+    #What it is
     <p>
       Allows you to swipe Harvard and Yale ID cards, whose holders' names, emails
       and timestamps will be stored in your google spreadsheet. Available to all
