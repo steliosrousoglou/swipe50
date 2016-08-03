@@ -11,10 +11,6 @@
 -Start swiping!<br>
 
 
-#Notes:
-The spreadsheet must exist<br>
-The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it *must* be writeable only by our service account)<br>
-
 <h1>About Swipe50</h1>
     What is it?
     
@@ -38,3 +34,8 @@ The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff
       8) Click Submit, then choose a specific sheet. <br>
       9) Draft an email to send to attendees <br>
       10) Start swiping!
+
+
+#Notes:
+The spreadsheet must exist<br>
+The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it *must* be writeable only by our service account)<br>
