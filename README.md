@@ -16,15 +16,15 @@ The spreadsheet must exist<br>
 The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it *must* be writeable only by our service account)<br>
 
 <h1>About Swipe50</h1>
-    ##(What is it?)
-    <p>
+    What is it?
+    
       Allows you to swipe Harvard and Yale ID cards, whose holders' names, emails
       and timestamps will be stored in your google spreadsheet. Available to all
       Harvard/Yale credential holders. <br> <br> Note: Hardware (magnetic stipe reader or
       proximity reader) is required.
-    </p>
-    <h2>How to use it</h2>
-    <p>
+    
+    How to use it
+
       1) Create a <a href="https://docs.google.com/spreadsheets" target="_blank">new Spreadsheet</a><br>
       2) Open your spreadsheet, and click on the blue Share button (top right)<br>
       3) Click "Advanced" (bottom-left of Share window), and under "Who has access"
@@ -38,4 +38,3 @@ The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff
       8) Click Submit, then choose a specific sheet. <br>
       9) Draft an email to send to attendees <br>
       10) Start swiping!
-    </p>
