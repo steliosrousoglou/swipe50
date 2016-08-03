@@ -10,8 +10,7 @@
 -Hit Submit<br>
 -Start swiping!<br>
 
-
-<h1>About Swipe50</h1>
+#About Swipe50
     What is it?
     
       Allows you to swipe Harvard and Yale ID cards, whose holders' names, emails
