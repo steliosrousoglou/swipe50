@@ -12,18 +12,23 @@ const swipeReader = document.querySelector('.swipe-reader');
 const dropDown = document.querySelector('.sheet-options');
 // button for exporting data
 const exportButton = document.querySelector('.export-button');
-// rich text area from swipe-in email customization and button
+// email functionality
 const emailTextPreview = document.querySelector('.textarea');
 const emailTextEdit = document.querySelector('.text-edit');
-// const emailButton = document.querySelector('.text-area-button');
 const emailDefault = document.querySelector('.email-default');
 const emailSave = document.querySelector('.email-save');
 const emailCancel = document.querySelector('.email-cancel');
 const emailPreview = document.querySelector('.email-preview');
-
+// about buttons
+const about = document.querySelector('.about-button');
+const totop = document.querySelector('.top-button');
+// views
+const page1 = document.querySelector('.page-1');
 const page2 = document.querySelector('.page-2');
 const page3 = document.querySelector('.page-3');
+const page4 = document.querySelector('.page-4');
 
+// current session global variables
 let spreadsheetId;
 let spreadsheetName;
 let sheetId;
@@ -105,9 +110,7 @@ const isWriteable = () => {
       page2.scrollIntoView();
     }
   })
-  .catch(err => {
-    alert(`Cannot connect to server: ${err}`);
-  });
+  .catch(() => console.log(`Cannot connect to server`));
 };
 
 /*
@@ -135,12 +138,10 @@ const getSpreadsheetInfo = () => {
       spreadsheetName = response.properties.title;
     }
   })
-  .catch(err => console.log(`Cannot get sheet information: ${err}`));
+  .catch(err => alert(`Cannot get sheet information: ${err}`));
 };
 
-/*
- * Makes post request to server with entered information
- */
+/* Makes post request to server with entered information */
 const swipeIn = netid => {
   if (netid === '24688') netid = 'hpa5';
   if (netid === '45672') netid = 'dwp7';
@@ -161,9 +162,7 @@ const swipeIn = netid => {
   .then(res => {
     if (res === 'fail') alert('Could not update student');
   })
-  .catch(err => {
-    alert(`Failed to swipe in: ${err}`);
-  });
+  .catch(err => alert(`Failed to swipe in: ${err}`));
 };
 
 /*
@@ -186,9 +185,7 @@ const exportData = () => {
   .then(text => {
     if (text === 'fail') alert(`Failed to export data from ${sheetName}`);
   })
-  .catch(() => {
-    alert(`Failed to export data from ${sheetName}`);
-  });
+  .catch(() => alert(`Failed to export data from ${sheetName}`));
 };
 
 /*
@@ -216,29 +213,22 @@ swipeReader.addEventListener('keyup', e => {
   }
 });
 
-/*
- * Event listener for drop-down sheet selector
- */
+/* Event listener for drop-down sheet selector */
 dropDown.addEventListener('change', e => {
   hideSwipe(true);
   sheetId = e.target.value;
   sheetName = dropDown.options[dropDown.selectedIndex].text;
+  const lastUrl = localStorage.getItem('lastUrl');
   label.innerHTML =
-    `Writing to <a href="${localStorage.getItem('lastUrl')}"> ${spreadsheetName}, ${sheetName}`;
+    `Writing to <a href="${lastUrl}" target="_blank"> ${spreadsheetName}</a>, ${sheetName}`;
   isWriteable();
   page2.scrollIntoView();
 });
 
-/*
- * Event listener for export button
- */
-exportButton.addEventListener('click', () => {
-  exportData();
-});
+/* Event listener for export button */
+exportButton.addEventListener('click', () => exportData());
 
-/*
- * Event listener for edit email text-area
- */
+/* Event listener for edit email text-area */
 emailPreview.addEventListener('click', () => {
   // toggle email text area
   emailTextPreview.innerHTML = emailTextEdit.value;
@@ -246,25 +236,25 @@ emailPreview.addEventListener('click', () => {
   emailTextEdit.classList.toggle('hidden');
 });
 
-/*
- * Event listener for get default email text
- */
-emailDefault.addEventListener('click', () => {
-  getDefaultEmail();
-});
+/* Event listener for get default email text */
+emailDefault.addEventListener('click', () => getDefaultEmail());
 
-/*
- * Event listener storing the drafted email in local storage
- */
+/* Event listener storing the drafted email in local storage */
 emailSave.addEventListener('click', () => {
   localStorage.setItem('emailText', emailTextEdit.value);
   swipeReader.focus();
   page3.scrollIntoView();
 });
 
-/*
- * Event listener for reverting email to last saved state
- */
+/* Event listener for reverting email to last saved state */
 emailCancel.addEventListener('click', () => {
   emailTextEdit.value = localStorage.getItem('emailText');
+});
+
+about.addEventListener('click', () => {
+  page4.scrollIntoView();
+});
+
+totop.addEventListener('click', () => {
+  page1.scrollIntoView();
 });

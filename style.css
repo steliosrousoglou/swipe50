@@ -71,11 +71,16 @@ section h1 {
 
 section p {
   font-size: .8rem;
-  text-align: center;
+  text-align: justify;
 }
 
 section .textarea {
   width: 100%;
   flex: 1 1 auto;
   text-align: left;
+}
+
+a {
+  display: inline;
+  font-size: .8rem;
 }
