@@ -8,18 +8,18 @@
     
     How to use it
 
-      1) Create a <a href="https://docs.google.com/spreadsheets" target="_blank">new Spreadsheet</a><br>
-      2) Open your spreadsheet, and click on the blue Share button (top right)<br>
+      1) Create a new Google Spreadsheet
+      2) Open your spreadsheet, and click on the blue Share button (top right)
       3) Click "Advanced" (bottom-left of Share window), and under "Who has access"
-      hit "Change..." (in blue).<br>
+      hit "Change..." (in blue).
       4) Select either "On - Anyone with the link" (recommended) OR
-      "On - Public on the web" (not recommended)<br>
-      5) Make sure "Access:" is set to "Can edit"<br>
-      6) Connect the hardware to your computer <br>
+      "On - Public on the web" (not recommended)
+      5) Make sure "Access:" is set to "Can edit"
+      6) Connect the hardware to your computer 
       7) Click "Save", then "Done". Copy the entire url from the URL bar (this is your spreadsheet's
-      URL) and paste it into application's "Connect to Spreadsheet" url box <br>
-      8) Click Submit, then choose a specific sheet. <br>
-      9) Draft an email to send to attendees <br>
+      URL) and paste it into application's "Connect to Spreadsheet" url box 
+      8) Click Submit, then choose a specific sheet. 
+      9) Draft an email to send to attendees 
       10) Start swiping!
 
 
