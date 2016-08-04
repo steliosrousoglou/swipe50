@@ -28,6 +28,6 @@ The spreadsheet must exist<br>
 The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it *must* be writeable only by our service account)<br>
 
 #Features
-Detects if spreadsheet is valid and accessible
-Detects if specified sheet is writeable
-Warns user an disables swiping functionality if unable to write to spreadsheet/sheet
+Detects if spreadsheet is valid and accessible<br>
+Detects if specified sheet is writeable<br>
+Warns user an disables swiping functionality if unable to write to spreadsheet/sheet<br>
