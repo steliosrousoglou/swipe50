@@ -73,7 +73,7 @@ const writeExport = (data, spreadsheetId, sheetTitle) => {
 };
 
 /*
- * Attempt to write to cell 0, 25 of specified sheet. Determines
+ * Attempt to write to cell (0, 25) of specified sheet. Determines
  * whether sheet is writeable, resolves/rejects accordingly.
  */
 const isWriteable = (spreadsheetId, sheetId) => new Promise((resolve, reject) => {
@@ -118,7 +118,7 @@ const studentRow = (netid, firstName, lastName, email) => [
 ];
 
 /*
- * Makes post request to Yale API and fetches student info
+ * Makes POST request to Yale API and resolves with student information
  */
 const getStudent = netid => new Promise((resolve, reject) => {
   request.post({
@@ -147,7 +147,7 @@ const getStudent = netid => new Promise((resolve, reject) => {
 });
 
 /*
- * Fetches information about the spreadsheet and initializes
+ * Resolves with information about the spreadsheet and initializes
  * the first row of every sheet to the standard headers
  */
 const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
@@ -166,7 +166,7 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
 });
 
 /*
- * Fetches all cell data from specified sheet, for exporting
+ * Resolves with all cell data from specified sheet, if successful
  */
 const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, reject) => {
   sheets.spreadsheets.values.get({
@@ -180,31 +180,24 @@ const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, r
 });
 
 /*
- * Sample email function for testing purposes,
- * send confirmation of attendance email upon swipe-in
+ * Sends email to student with specified body, making template substitutions
  */
-const emailStudent = (email, timestamp, name, message) => {
+const emailStudent = (email, name, message) => {
   const transporter = nodemailer.createTransport(emailCreds);
   const bodyTemp = _.template(message);
   // setup e-mail data with unicode symbols
   const mailOptions = {
     from: '<strousoglou@gmail.com>', // sender address
-    to: email, // list of receivers
+    to: email, // student
     subject: 'Welcome to CS50 Office Hours', // Subject line
-    // text: 'Hello world 🐴', // plaintext body
     html: bodyTemp({
-      timestamp,
       name,
     }),
   };
 
   // send mail with defined transport object
-  transporter.sendMail(mailOptions, (err, info) => {
-    if (err) {
-      console.log(err);
-      return;
-    }
-    console.log('Message sent: ' + info.response);
+  transporter.sendMail(mailOptions, (err) => {
+    if (err) return;
   });
 };
 
@@ -213,9 +206,6 @@ const emailStudent = (email, timestamp, name, message) => {
  * number of students and sign-in times of staff
  */
 const processData = data => {
-  // remove headers and empty lines from data
-  data.values.shift();
-  const students = data.values.filter(x => x.length > 0);
   // require staff netids file
   const staffFile = fs.readFileSync('./staff.txt', 'utf8');
   // staff netids in array 'staff', remove empty lines
@@ -226,7 +216,10 @@ const processData = data => {
   const allStudents = [];
   const allStaff = [];
 
-  students.forEach(id => {
+  // remove headers and empty lines from data
+  data.values.shift();
+  // filter attendees
+  data.values.filter(x => x.length > 0).forEach(id => {
     // extract time from timestamp
     const time = id[1].match(getTime);
     const checkIn = time[0];
@@ -250,12 +243,29 @@ const processData = data => {
 };
 
 /*
+ * Extracts emails from sheet, removes duplicates and returns
+ * as string of newline-separated emails
+ */
+const allEmails = data => {
+  const emails = [];
+
+  // remove headers and empty lines from data
+  data.values.shift();
+  // filter attendees' emails
+  data.values.filter(x => x.length > 0).forEach(id => {
+    if (id[4]) emails.push(id[4]);
+  });
+  // remove duplicates and return as string
+  return Array.from(new Set(emails)).join('\n');
+};
+
+/*
  * Endpoint to determine if specified sheet is writeable, responds
  * with keyword 'fail' if it is not.
  */
 app.post('/writeable', (req, res) => {
   isWriteable(req.body.spreadsheetId, req.body.sheetId)
-  .then(body => res.send(body))
+  .then(() => res.send())
   .catch(() => res.send('fail'));
 });
 
@@ -295,7 +305,6 @@ app.post('/swipe', (req, res) => {
       else { // TODO: fix this, just precaution for now
         if (values[4].userEnteredValue.stringValue === 'stylianos.rousoglou@yale.edu') {
           emailStudent(values[4].userEnteredValue.stringValue,
-            values[1].userEnteredValue.stringValue,
             values[2].userEnteredValue.stringValue, req.body.message);
         }
         res.send(values);
@@ -317,8 +326,21 @@ app.post('/export', (req, res) => {
   .catch(() => res.send('fail'));
 });
 
+/*
+ * Sends default welcome email to client
+ */
 app.get('/defaultEmail', (req, res) => {
   res.send(emailTemp);
+});
+
+/*
+ * Sends all attendees' emails from specified sheet to client
+ */
+app.post('/allEmails', (req, res) => {
+  getSpreadsheetData(req.body.spreadsheetId, req.body.sheetName)
+  .then(body => allEmails(body))
+  .then((emails) => res.send(emails))
+  .catch(() => res.send('fail'));
 });
 
 app.listen(3000);

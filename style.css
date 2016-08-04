@@ -15,11 +15,6 @@ style {
   display: none;
 }
 
-.hidden {
-  display: none;
-  margin: 0;
-}
-
 button,
 input,
 textarea {
@@ -36,6 +31,11 @@ select {
   font-size: calc(10px + 1vmin);
   text-indent: calc(5px + 1vmin);
   color: #a5a5a5;
+}
+
+.hidden {
+  display: none;
+  margin: 0;
 }
 
 section {
