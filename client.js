@@ -189,9 +189,6 @@ const getSpreadsheetInfo = () => {
 
 /* Makes post request to server with swiped information */
 const swipeIn = netid => {
-  if (netid === '24688') netid = 'hpa5';
-  if (netid === '45672') netid = 'dwp7';
-
   const body = {
     netid,
     spreadsheetId,
