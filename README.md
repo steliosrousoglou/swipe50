@@ -32,5 +32,5 @@ About page with detailed instructions about how to get started and use the appli
 Detects if entered spreadsheet is valid and accessible<br>
 Detects if specified sheet is writeable<br>
 Warns user and disables swiping functionality if unable to write to sheet<br>
-Allows drafting welcome email in HTML, previewing it, getting generic one, and saving for future sessions
-Sends welcome email to everyone who swipes in
+Allows drafting welcome email in HTML, previewing it, getting generic one, and saving for future sessions<br>
+Sends welcome email to everyone who swipes in<br>
