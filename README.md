@@ -34,3 +34,6 @@ Detects if specified sheet is writeable<br>
 Warns user and disables swiping functionality if unable to write to sheet<br>
 Allows drafting welcome email in HTML, previewing it, getting generic one, and saving for future sessions<br>
 Sends welcome email to everyone who swipes in<br>
+By swiping Harvard/Yale ID, swiper's information is appended to the end of the selected sheet. Each entry includes the fields: netid, timestamp, first name, last name, email address<br>
+'Export Data' button summarizes all entries present in the sheet and writes summary to the sheet: # of students attending, # and arrival time of all staff members (sorted by lateness)
+'Get Email Addresses' displays (in a email-friendly copy-pastable list) the emails of everyone attending the event (in case admin wants to email everyone any new information)
