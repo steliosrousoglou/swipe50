@@ -1,3 +1,4 @@
+// Email flag
 const SEND_EMAILS = false;
 
 // dependencies
