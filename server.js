@@ -172,6 +172,7 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
  * Resolves with all cell data from specified sheet, if successful
  */
 const getSpreadsheetData = (spreadsheetId, sheetName) => new Promise((resolve, reject) => {
+  if (sheetName.indexOf('/') !== -1) reject();
   sheets.spreadsheets.values.get({
     auth,
     spreadsheetId,
@@ -305,7 +306,7 @@ app.post('/swipe', (req, res) => {
       },
     }, (err) => {
       if (err) res.send('fail');
-      else { // TODO: fix this, just precaution for now
+      else {
         if (SEND_EMAILS) {
           emailStudent(values[4].userEnteredValue.stringValue,
             values[2].userEnteredValue.stringValue, req.body.message);

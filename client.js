@@ -127,7 +127,7 @@ const getAllEmails = () => {
     body: JSON.stringify(body) })
   .then(res => res.text())
   .then(text => {
-    if (text === 'fail') alert(`Failed to get emails from ${sheetName}`);
+    if (text === 'fail') alert(`Failed to get emails from ${sheetName}.\nSheet names must NOT contains the character /.`);
     else emailsArea.innerHTML = text.split('\n').join('<br>');
   })
   .catch(() => alert(`Failed to get emails from ${sheetName}`));

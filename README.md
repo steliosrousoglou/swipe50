@@ -24,8 +24,9 @@
 
 
 #Notes:
-The spreadsheet must exist<br>
-The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it *must* be writeable only by our service account)<br>
+The spreadsheet <b>must<b> exist<br>
+The spreadhsheet <b>must</b> be writeable by anyone with the url (for cs50 staff, it <b>must<b> be writeable only by our service account)<br>
+Sheet names <b>must not<b> contain the character / (frontslash)<br>
 
 #Features
 About page with detailed instructions about how to get started and use the application<br>
