@@ -1,3 +1,5 @@
+const SEND_EMAILS = false;
+
 // dependencies
 const bodyParser = require('body-parser');
 const express = require('express');
@@ -187,7 +189,7 @@ const emailStudent = (email, name, message) => {
   const bodyTemp = _.template(message);
   // setup e-mail data with unicode symbols
   const mailOptions = {
-    from: '<strousoglou@gmail.com>', // sender address
+    from: 'yaleheads@gmail.com', // sender address
     to: email, // student
     subject: 'Welcome to CS50 Office Hours', // Subject line
     html: bodyTemp({
@@ -303,7 +305,7 @@ app.post('/swipe', (req, res) => {
     }, (err) => {
       if (err) res.send('fail');
       else { // TODO: fix this, just precaution for now
-        if (values[4].userEnteredValue.stringValue === 'stylianos.rousoglou@yale.edu') {
+        if (SEND_EMAILS) {
           emailStudent(values[4].userEnteredValue.stringValue,
             values[2].userEnteredValue.stringValue, req.body.message);
         }
