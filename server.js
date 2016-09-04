@@ -1,3 +1,4 @@
+"use strict";
 // Email flag
 const SEND_EMAILS = false;
 
