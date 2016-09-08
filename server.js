@@ -35,6 +35,11 @@ const auth = oauth2Client;
 const emailCreds = fs.readFileSync('./emailCreds.txt', 'utf8'); // TODO: change
 const emailTemp = fs.readFileSync('./emailTemp.txt', 'utf8');
 
+// require staff netids file
+const staffFile = fs.readFileSync('./staff.txt', 'utf8');
+// staff netids in array 'staff', remove empty lines
+const staff = staffFile.split('\n').filter(s => s !== '');
+
 // set default time-zone for timestamps
 process.env.TZ = 'America/New_York';
 
@@ -57,8 +62,8 @@ const getValueRange = (range, values, spreadsheetId, md) => ({
  */
 const ensureHeaders = (spreadsheetId, sheetTitle) => {
   sheets.spreadsheets.values.update(getValueRange(
-    `${sheetTitle}!A1:E1`,
-    [['netID', 'Timestamp', 'First Name', 'Last Name', 'email']],
+    `${sheetTitle}!A1:G1`,
+    [['netID', 'Timestamp', 'First Name', 'Last Name', 'email', '', 'Staff?']],
     spreadsheetId, 'ROWS'
   ), () => {});
 };
@@ -70,7 +75,7 @@ const ensureHeaders = (spreadsheetId, sheetTitle) => {
 const writeExport = (data, spreadsheetId, sheetTitle) => {
   const headers = [['# Students:', data[1]], ['# Staff:', data[0].length]];
   sheets.spreadsheets.values.update(getValueRange(
-    `${sheetTitle}!G:H`,
+    `${sheetTitle}!H:I`,
     headers.concat(data[0]),
     spreadsheetId, 'ROWS'
     ), () => {});
@@ -119,6 +124,8 @@ const studentRow = (netid, firstName, lastName, email) => [
   { userEnteredValue: { stringValue: firstName } },
   { userEnteredValue: { stringValue: lastName } },
   { userEnteredValue: { stringValue: email } },
+  {},
+  { userEnteredValue: { stringValue: staff.indexOf(netid) !== -1 ? 'Y' : '' } },
 ];
 
 /*
@@ -216,10 +223,6 @@ const emailStudent = (email, name, message) => {
  * number of students and sign-in times of staff
  */
 const processData = data => {
-  // require staff netids file
-  const staffFile = fs.readFileSync('./staff.txt', 'utf8');
-  // staff netids in array 'staff', remove empty lines
-  const staff = staffFile.split('\n').filter(s => s !== '');
   // regex to match time
   const getTime = /..:..:../;
 
@@ -258,7 +261,6 @@ const processData = data => {
  */
 const allEmails = data => {
   const emails = [];
-
   // remove headers and empty lines from data
   data.values.shift();
   // filter attendees' emails
