@@ -62,8 +62,8 @@ const getValueRange = (range, values, spreadsheetId, md) => ({
  */
 const ensureHeaders = (spreadsheetId, sheetTitle) => {
   sheets.spreadsheets.values.update(getValueRange(
-    `${sheetTitle}!A1:G1`,
-    [['netID', 'Timestamp', 'First Name', 'Last Name', 'email', '', 'Staff?']],
+    `${sheetTitle}!A1:F1`,
+    [['NetID', 'Timestamp', 'First Name', 'Last Name', 'Email', 'Staff?']],
     spreadsheetId, 'ROWS'
   ), () => {});
 };
@@ -124,7 +124,6 @@ const studentRow = (netid, firstName, lastName, email) => [
   { userEnteredValue: { stringValue: firstName } },
   { userEnteredValue: { stringValue: lastName } },
   { userEnteredValue: { stringValue: email } },
-  {},
   { userEnteredValue: { stringValue: staff.indexOf(netid) !== -1 ? 'Y' : '' } },
 ];
 
