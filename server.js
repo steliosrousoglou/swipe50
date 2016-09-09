@@ -131,13 +131,13 @@ const studentRow = (netid, firstName, lastName, email) => [
  * Makes POST request to Yale API and resolves with student information
  */
 const getStudent = netid => new Promise((resolve, reject) => {
-  const url = 'https://gw-tst.its.yale.edu/soa-gateway/cs50';
+  const url = 'https://gw.its.yale.edu/soa-gateway/cs50';
   request.get({
     url,
     qs: {
       netid,
       type: 'json',
-    }
+    },
   }, (error, response, body) => {
     if (error) {
       reject();
