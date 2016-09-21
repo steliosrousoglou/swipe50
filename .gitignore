@@ -5,3 +5,4 @@ emailCreds.txt
 client_secret(strousoglou).json
 emailCreds(strousoglou).txt
 token(strousoglou).json
+.DS_Store

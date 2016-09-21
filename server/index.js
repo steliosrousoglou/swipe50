@@ -1,11 +1,10 @@
-"use strict";
 // Email flag
 const SEND_EMAILS = false;
 
 // dependencies
+const fs = require('fs');
 const bodyParser = require('body-parser');
 const express = require('express');
-const fs = require('fs');
 const google = require('googleapis');
 const GoogleAuth = require('google-auth-library');
 const _ = require('lodash');
