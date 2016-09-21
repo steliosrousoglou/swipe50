@@ -1,3 +1,5 @@
+"use strict";
+
 // Email flag
 const SEND_EMAILS = false;
 
@@ -18,6 +20,12 @@ app.use(bodyParser.text());
 app.use(bodyParser.urlencoded({
   extended: true,
 }));
+
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 // create and store credentials
 const creds = require('./client_secret.json');  // TODO: change
@@ -169,6 +177,7 @@ const getSpreadsheet = spreadsheetId => new Promise((resolve, reject) => {
     auth,
     spreadsheetId,
   }, (err, res) => {
+    // CHECK RES WAS NOT 404
     if (err) reject();
     else {
       res.sheets.forEach(x => {
